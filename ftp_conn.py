@@ -50,6 +50,18 @@ def change_directory_PSCO911(absolute_path, ftp):
     else:
         return None
 
+def list_directory_contents(ftp):
+
+    print(ftp.pwd())
+
+    for filename, attrs in ftp.mlsd("."):
+        file_type = attrs.get("type")
+        if file_type == "dir":
+            print(f'Directory: {filename}')
+    print(len(ftp.nlst()))
+
+    return ftp
+
 # MAIN LOOP SETUP
 connection = connect_to_ftp(USERNAME, PASSWORD, FTP_LINK)
 
@@ -57,7 +69,7 @@ if connection == None:
     print("Login Failed")
     quit()
 
-change_directory_PSCO911(ABSOLUTE_PATH, connection)
+list_directory_contents(change_directory_PSCO911(ABSOLUTE_PATH, connection))
 
 # MAIN LOOP
 
