@@ -6,8 +6,7 @@ from ftplib import FTP
 from key import USERNAME, PASSWORD, FTP_LINK, ABSOLUTE_PATH
 
 # CONSTANTS
-SUCCESS_CODE = "2"
-''
+
 # FUNCTIONS
 def connect_to_ftp(username, password, ftp_link):
     """
@@ -29,6 +28,7 @@ def connect_to_ftp(username, password, ftp_link):
         return ftp
     except ftplib.error_perm as e:
         print(f"Login Failed: {e}")
+        ftp.quit()
         quit()
 
 def change_directory_PSCO911(absolute_path, ftp):
@@ -47,6 +47,7 @@ def change_directory_PSCO911(absolute_path, ftp):
         return ftp
     except ftplib.error_perm as e:
         print(f"Failed to Changed Directory: {e}")
+        ftp.quit()
         quit()
 
 def list_directory_contents(ftp):
@@ -69,11 +70,32 @@ def list_directory_contents(ftp):
 
     return ftp
 
+def get_files(ftp):
+    pass
 
+def is_valid_file(filename, ftp):
+    """
+    checks to see if the file has a size thats bigger than 0 megabytes
+
+    Args:
+        filename: filename to check
+        ftp: FTP connection object
+    Returns:
+        True or False (Boolean)
+    """
+    try:
+        if ftp.size(filename) > 0:
+            return True
+        else:
+            print(f"File '{filename}' is 0 bytes. Skipping.")
+            return False
+    except ftplib.error_perm as e:
+        print(f"Failed to get size of file: {e}")
+        return False
 
 # MAIN LOOP SETUP
 connection = connect_to_ftp(USERNAME, PASSWORD, FTP_LINK)
-change_directory_PSCO911(ABSOLUTE_PATH, connection)
+connection = change_directory_PSCO911(ABSOLUTE_PATH, connection)
 
 """ This is the test to see if directory contains subdirectories """
 # list_directory_contents(change_directory_PSCO911(ABSOLUTE_PATH, connection))
