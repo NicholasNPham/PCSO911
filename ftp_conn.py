@@ -1,5 +1,4 @@
 # Standard Library Imports
-import ftplib
 from ftplib import FTP
 
 # Local Imports
