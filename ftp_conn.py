@@ -41,13 +41,13 @@ def change_directory_PSCO911(absolute_path, ftp):
     Returns:
         ftp connection object or None if change fails.
     """
-    status = ftp.cwd(absolute_path)
-
-    if status[0] == SUCCESS_CODE:
-        print("Changed Directory Successfully")
+    try:
+        ftp.cwd(absolute_path)
+        print("Changed Directory to PSCO911")
         return ftp
-    else:
-        return None
+    except ftplib.error_perm as e:
+        print(f"Failed to Changed Directory: {e}")
+        quit()
 
 def list_directory_contents(ftp):
     """
@@ -68,6 +68,8 @@ def list_directory_contents(ftp):
     print(f"Number of Directories: {len(ftp.nlst())}")
 
     return ftp
+
+
 
 # MAIN LOOP SETUP
 connection = connect_to_ftp(USERNAME, PASSWORD, FTP_LINK)
