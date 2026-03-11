@@ -51,7 +51,14 @@ def change_directory_PSCO911(absolute_path, ftp):
         return None
 
 def list_directory_contents(ftp):
+    """
+    lists the contents of a directory and its subdirectories used to only test
 
+    Args:
+        ftp: FTP connection object
+    Returns:
+        ftp connection object
+    """
     print(ftp.pwd())
 
     for filename, attrs in ftp.mlsd("."):
