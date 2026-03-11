@@ -1,4 +1,5 @@
 # Standard Library Imports
+import ftplib
 from ftplib import FTP
 
 # Local Imports
@@ -18,18 +19,17 @@ def connect_to_ftp(username, password, ftp_link):
         ftp_link: FTP server address.
 
     Returns:
-        FTP connection object or None if login fails.
+        FTP connection object or quits if login fails.
     """
     ftp = FTP(ftp_link)
-    status = ftp.login(username, password)
 
-    if status[0] == SUCCESS_CODE:
+    try:
+        ftp.login(username, password)
         print("Login Successful")
         return ftp
-    else:
-        print("Login Failed")
-        ftp.quit()
-        return None
+    except ftplib.error_perm as e:
+        print(f"Login Failed: {e}")
+        quit()
 
 def change_directory_PSCO911(absolute_path, ftp):
     """
@@ -64,18 +64,17 @@ def list_directory_contents(ftp):
         file_type = attrs.get("type")
         if file_type == "dir":
             print(f'Directory: {filename}')
-    print(len(ftp.nlst()))
+
+    print(f"Number of Directories: {len(ftp.nlst())}")
 
     return ftp
 
 # MAIN LOOP SETUP
 connection = connect_to_ftp(USERNAME, PASSWORD, FTP_LINK)
+change_directory_PSCO911(ABSOLUTE_PATH, connection)
 
-if connection == None:
-    print("Login Failed")
-    quit()
-
-list_directory_contents(change_directory_PSCO911(ABSOLUTE_PATH, connection))
+""" This is the test to see if directory contains subdirectories """
+# list_directory_contents(change_directory_PSCO911(ABSOLUTE_PATH, connection))
 
 # MAIN LOOP
 
