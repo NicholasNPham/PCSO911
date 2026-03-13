@@ -50,26 +50,6 @@ def change_directory_911_phone_calls(absolute_path, ftp):
         ftp.quit()
         quit()
 
-def list_directory_contents(ftp):
-    """
-    lists the contents of a directory and its subdirectories used to only test
-
-    Args:
-        ftp: FTP connection object
-    Returns:
-        ftp connection object
-    """
-    print(ftp.pwd())
-
-    for filename, attrs in ftp.mlsd("."):
-        file_type = attrs.get("type")
-        if file_type == "dir":
-            print(f'Directory: {filename}')
-
-    print(f"Number of Directories: {len(ftp.nlst())}")
-
-    return ftp
-
 def get_files(ftp):
     pass
 
@@ -92,6 +72,27 @@ def is_valid_file(filename, ftp):
     except ftplib.error_perm as e:
         print(f"Failed to get size of file: {e}")
         return False
+
+# Testing Function
+def list_directory_contents(ftp):
+    """
+    lists the contents of a directory and its subdirectories used to only test
+
+    Args:
+        ftp: FTP connection object
+    Returns:
+        ftp connection object
+    """
+    print(ftp.pwd())
+
+    for filename, attrs in ftp.mlsd("."):
+        file_type = attrs.get("type")
+        if file_type == "dir":
+            print(f'Directory: {filename}')
+
+    print(f"Number of Directories: {len(ftp.nlst())}")
+
+    return ftp
 
 # MAIN LOOP SETUP
 connection = connect_to_ftp(USERNAME, PASSWORD, FTP_LINK)
