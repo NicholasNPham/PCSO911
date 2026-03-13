@@ -50,7 +50,7 @@ def change_directory_911_phone_calls(absolute_path, ftp):
         ftp.quit()
         quit()
 
-def get_files(ftp):
+def get_filenames(ftp):
     pass
 
 def is_valid_file(filename, ftp):
@@ -73,33 +73,49 @@ def is_valid_file(filename, ftp):
         print(f"Failed to get size of file: {e}")
         return False
 
-# Testing Function
 def list_directory_contents(ftp):
     """
-    lists the contents of a directory and its subdirectories used to only test
+    Returns a dictionary mapping child directory names to a list of filenames
+    contained within each child directory.
 
     Args:
         ftp: FTP connection object
+
     Returns:
-        ftp connection object
+        tuple:
+            - ftp: FTP connection object
+            - child_directory_to_directory_contents_dict (dict): dictionary where
+              each key is a child directory name and each value is a list of
+              filenames inside that child directory.
+              Example: {
+                  "child_dir_1": ["file1.pdf", "file2.mp3"],
+                  "child_dir_2": ["file3.html"]
+              }
     """
-    print(ftp.pwd())
+    child_directory_to_directory_contents_dict = {}
+    child_directory_filename_list = []
 
-    for filename, attrs in ftp.mlsd("."):
-        file_type = attrs.get("type")
-        if file_type == "dir":
-            print(f'Directory: {filename}')
+    for child_directory_name, attr in ftp.mlsd("."):
 
-    print(f"Number of Directories: {len(ftp.nlst())}")
+        if child_directory_name == "__Completed":
+            continue
+        elif attr.get("type") == 'dir':
+            ftp.cwd(child_directory_name)
+            for filename, attrs in ftp.mlsd("."):
+                if attrs.get("type") == 'file':
+                    child_directory_filename_list.append(filename)
+            child_directory_to_directory_contents_dict[child_directory_name] = child_directory_filename_list
+            ftp.cwd("..")
+            child_directory_filename_list = []
 
-    return ftp
+    # Uncommit this to check dictionary
+    # print(child_directory_to_directory_contents_dict)
+
+    return ftp, child_directory_to_directory_contents_dict
 
 # MAIN LOOP SETUP
 connection = connect_to_ftp(USERNAME, PASSWORD, FTP_LINK)
-connection = change_directory_911_phone_calls(ABSOLUTE_PATH, connection)
-
-""" This is the test to see if directory contains subdirectories """
-# list_directory_contents(change_directory_PSCO911(ABSOLUTE_PATH, connection))
+list_directory_contents(change_directory_911_phone_calls(ABSOLUTE_PATH, connection))
 
 # MAIN LOOP
 
