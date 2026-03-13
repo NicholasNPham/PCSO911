@@ -31,7 +31,7 @@ def connect_to_ftp(username, password, ftp_link):
         ftp.quit()
         quit()
 
-def change_directory_PSCO911(absolute_path, ftp):
+def change_directory_911_phone_calls(absolute_path, ftp):
     """
     changing directory to PSCO911
 
@@ -95,7 +95,7 @@ def is_valid_file(filename, ftp):
 
 # MAIN LOOP SETUP
 connection = connect_to_ftp(USERNAME, PASSWORD, FTP_LINK)
-connection = change_directory_PSCO911(ABSOLUTE_PATH, connection)
+connection = change_directory_911_phone_calls(ABSOLUTE_PATH, connection)
 
 """ This is the test to see if directory contains subdirectories """
 # list_directory_contents(change_directory_PSCO911(ABSOLUTE_PATH, connection))
