@@ -50,9 +50,6 @@ def change_directory_911_phone_calls(absolute_path, ftp):
         ftp.quit()
         quit()
 
-def get_filenames(ftp):
-    pass
-
 def is_valid_file(filename, ftp):
     """
     checks to see if the file has a size thats bigger than 0 megabytes
@@ -73,7 +70,7 @@ def is_valid_file(filename, ftp):
         print(f"Failed to get size of file: {e}")
         return False
 
-def list_directory_contents(ftp):
+def child_dir_name_to_child_dir_filenames_gen(ftp):
     """
     Returns a dictionary mapping child directory names to a list of filenames
     contained within each child directory.
@@ -93,20 +90,21 @@ def list_directory_contents(ftp):
               }
     """
     child_directory_to_directory_contents_dict = {}
-    child_directory_filename_list = []
 
-    for child_directory_name, attr in ftp.mlsd("."):
+    for child_directory_name, attribute in ftp.mlsd("."):
 
         if child_directory_name == "__Completed":
             continue
-        elif attr.get("type") == 'dir':
-            ftp.cwd(child_directory_name)
-            for filename, attrs in ftp.mlsd("."):
-                if attrs.get("type") == 'file':
-                    child_directory_filename_list.append(filename)
-            child_directory_to_directory_contents_dict[child_directory_name] = child_directory_filename_list
-            ftp.cwd("..")
+        elif attribute.get("type") == 'dir':
             child_directory_filename_list = []
+            ftp.cwd(child_directory_name)
+            for filename, attributes in ftp.mlsd("."):
+                if attributes.get("type") == 'file' and is_valid_file(filename, ftp):
+                    child_directory_filename_list.append(filename)
+
+            if child_directory_filename_list:
+                child_directory_to_directory_contents_dict[child_directory_name] = child_directory_filename_list
+            ftp.cwd("..")
 
     # Uncommit this to check dictionary
     # print(child_directory_to_directory_contents_dict)
@@ -115,7 +113,7 @@ def list_directory_contents(ftp):
 
 # MAIN LOOP SETUP
 connection = connect_to_ftp(USERNAME, PASSWORD, FTP_LINK)
-list_directory_contents(change_directory_911_phone_calls(ABSOLUTE_PATH, connection))
+child_dir_name_to_child_dir_filenames_gen(change_directory_911_phone_calls(ABSOLUTE_PATH, connection)) # REMEMBER RETURNS A TUPLE (ftp, dict)
 
 # MAIN LOOP
 
