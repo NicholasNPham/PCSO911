@@ -36,6 +36,10 @@ IMAGES_TAB_OF_CASE_ID = "incidentsTab-tab-3"
 ADD_BUTTON_BAR_OF_IMAGES_ID = "AddNewImagesTab"
 ADD_IMAGE_DROPDOWN_MENU_CSS_SELECTOR = "[data-id='newImage']"
 SELECT_FILES_BUTTON_CSS_SELECTOR = ".k-upload-button"
+IMAGE_SUB_TYPE_FIND_BUTTON_ID = "image_sub_typeFindButton"
+IMAGE_SUB_TYPE_ROW_XPATH = "//span[text()='911AUDIO']"
+SELECT_BUTTON_XPATH = "//span[text()='Select']/parent::button"
+ADD_IMAGE_UPLOAD_DROPBOX_CSS_SELECTOR = "input[id^='cipFileUpload_TelerikUpload']"
 RESET_CSS_SELECTOR = "[data-menuid='mystac']"  # UNNEEDED RIGHT NOW.
 
 # FUNCTIONS
@@ -123,11 +127,21 @@ def add_image(driver, wait):
     wait.until(EC.element_to_be_clickable((By.ID, ADD_BUTTON_BAR_OF_IMAGES_ID))).click()
     add_image_dropdown_button = driver.find_element(By.CSS_SELECTOR, ADD_IMAGE_DROPDOWN_MENU_CSS_SELECTOR)
     driver.execute_script("arguments[0].click();", add_image_dropdown_button)
-    select_files_button = driver.find_element(By.CSS_SELECTOR, SELECT_FILES_BUTTON_CSS_SELECTOR)
-    driver.execute_script("arguments[0].click();", select_files_button)
 
-    time.sleep(PAUSE_BETWEEN_ACTIONS_SECONDS)
+    # Finding the Correct Type and Subtype
+    wait.until(EC.element_to_be_clickable((By.ID, IMAGE_SUB_TYPE_FIND_BUTTON_ID))).click()
+    wait.until(EC.element_to_be_clickable((By.ID, IMAGE_SUB_TYPE_FIND_BUTTON_ID))).click()
+    wait.until(EC.element_to_be_clickable((By.XPATH, IMAGE_SUB_TYPE_ROW_XPATH))).click()
+    wait.until(EC.element_to_be_clickable((By.XPATH, SELECT_BUTTON_XPATH))).click()
 
+    # Send file path directly to hidden input — bypasses OS file dialog entirely
+    file_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ADD_IMAGE_UPLOAD_DROPBOX_CSS_SELECTOR)))
+    driver.execute_script("arguments[0].removeAttribute('class')", file_input)  # unhide the input
+
+    # Uploading Files to the DropBox
+    full_paths = [("H:\\" + file) for file in file_path_list_test]
+    file_input.send_keys("\n".join(full_paths))
+    time.sleep(1)
 
     return (driver, wait)
 
