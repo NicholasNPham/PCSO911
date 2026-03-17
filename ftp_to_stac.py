@@ -145,39 +145,17 @@ def add_image(driver, wait):
 
     return (driver, wait)
 
-# def run_stac_script(identifiers, url):
-#     """
-#     Main orchestrator: setup, navigate, search, and add hyperlink.
-#
-#     Args:
-#         identifiers (dict): Dictionary with 'UCN', 'CN', 'ARN' values
-#         url (str): URL to add to the case
-#     """
-#     driver, wait = setup_browser()
-#     driver, wait = navigate_to_search(driver, wait)
-#     driver, wait, rows = search_by_priority(driver, wait, identifiers)
-#     if len(rows) == 1:
-#         add_hyperlink(driver, wait, url)
-#         print("Hyperlink added successfully")
-#         is_row_length_one = True
-#     elif len(rows) > 1:
-#         print("Multiple Cases Found")
-#         is_row_length_one = False
-#     else:
-#         print("No cases found with given identifiers")
-#         is_row_length_one = False
-#
-#     time.sleep(WEBDRIVER_WAIT_TIMEOUT_SECONDS)
-#     driver.quit()
-#     return is_row_length_one
-
-
-# if __name__ == "__main__":
-#     run_stac_script(IDENTIFIERS_ALL, stac_website)
+def run_stac_script(universal_case_number):
+    """
+    Main orchestrator: setup, navigate, search, and add files.
+    Args:
+         universal_case_number (str): Universal Case Number.
+    """
+    driver, wait = setup_browser()
+    driver, wait = navigate_to_search(driver, wait)
+    driver, wait = search_by_ucn(driver, wait, universal_case_number)
+    driver, wait = add_image(driver, wait)
+    time.sleep(WEBDRIVER_WAIT_TIMEOUT_SECONDS)
 
 # LOOP TESTING
-driver, wait = setup_browser()
-driver, wait = navigate_to_search(driver, wait)
-driver, wait = search_by_ucn(driver, wait, test_case)
-driver, wait = add_image(driver, wait)
-time.sleep(WEBDRIVER_WAIT_TIMEOUT_SECONDS)
+# run_stac_script(test_case)
