@@ -21,7 +21,7 @@ from key import *
 # CONSTANTS
 CHROME_PATH = 'chromedriver-win64/chromedriver.exe'
 PAUSE_BETWEEN_ACTIONS_SECONDS = 1
-WEBDRIVER_WAIT_TIMEOUT_SECONDS = 10
+WEBDRIVER_WAIT_TIMEOUT_SECONDS = 5
 
 # HTML
 USERNAME_FIELD_ID = 'Username'
@@ -141,8 +141,7 @@ def add_image(driver, wait, file_list):
     print("WORKED")
 
     # Uploading Files to the DropBox
-    full_paths = [(TEMP_FILES_FOLDER + file) for file in file_list] # I have absolute path ready
-    file_input.send_keys("\n".join(full_paths))
+    file_input.send_keys("\n".join(file_list))
     time.sleep(1)
 
     return (driver, wait)
