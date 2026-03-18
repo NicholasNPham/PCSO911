@@ -1,4 +1,4 @@
-# Standard Library Imports
+# Standard Library Imp orts
 import ftplib
 from ftplib import FTP
 import re
@@ -107,8 +107,8 @@ def child_dir_name_to_child_dir_filenames_gen(ftp):
               each key is a child directory name and each value is a list of
               filenames inside that child directory.
               Example: {
-                  "child_dir_1": ["file1.pdf", "file2.mp3"],
-                  "child_dir_2": ["file3.html"]
+                  "child_dir_1": {"UCN": UCN, "files": ["file1.pdf", "file2.mp3"]},
+                  "child_dir_2": {"UCN": UCN, "files": ["file3.pdf"]}
               }
     """
     child_directory_to_directory_contents_dict = {}
