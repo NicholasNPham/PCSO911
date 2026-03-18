@@ -2,6 +2,9 @@
 import ftplib
 from ftplib import FTP
 import re
+import os
+import tempfile
+import shutil
 
 # Local Imports
 from key import USERNAME, PASSWORD, FTP_LINK, ABSOLUTE_PATH, UNIVERSAL_CASE_NUMBER_PATTERN
@@ -74,6 +77,25 @@ def is_valid_file(filename, ftp):
     except ftplib.error_perm as e:
         print(f"Failed to get size of file: {e}")
         return False
+
+def download_files_to_temp(ftp, file_list):
+    temp_dir =  r"H:\911_TEMP_FILES"
+    os.makedirs(temp_dir, exist_ok=True)
+    local_file_path = []
+
+    for filename in file_list:
+        local_path = os.path.join(temp_dir, filename)
+        with open(local_path, "wb") as file:
+            ftp.retrbinary(f"RETR {filename}", file.write)
+        local_file_path.append(local_path)
+        print(f"Downloaded {filename} to {local_path}")
+
+    return temp_dir, local_file_path
+
+def delete_temp_dir(temp_dir):
+    """Deletes the temp directory and all its contents."""
+    shutil.rmtree(temp_dir)
+    print(f"Deleted temp directory: {temp_dir}")
 
 def extract_ucn_from_child_dir_name(child_dir_name):
     """
@@ -154,7 +176,14 @@ if __name__ == "__main__":
         for child_dir_name, child_dir_data in child_directory_to_directory_contents_dict.items():
             print(child_dir_name)
             print(f"number of files: {len(child_dir_data['files'])}")
-            run_stac_script(child_dir_data["ucn"], child_dir_data['files'])
+
+            ftp.cwd(child_dir_name)
+            temp_dir, local_file_paths = download_files_to_temp(ftp, child_dir_data["files"])
+            ftp.cwd("..")
+
+            run_stac_script(child_dir_data["ucn"], local_file_paths)
+
+            delete_temp_dir(temp_dir)
 
     except ConnectionError as e:
         print(e)
