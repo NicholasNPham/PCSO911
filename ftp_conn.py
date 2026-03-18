@@ -5,6 +5,7 @@ import re
 
 # Local Imports
 from key import USERNAME, PASSWORD, FTP_LINK, ABSOLUTE_PATH, UNIVERSAL_CASE_NUMBER_PATTERN
+from ftp_to_stac import run_stac_script
 
 # CONSTANTS
 COMPLETED_DIR_NAME = "__Completed"
@@ -147,11 +148,16 @@ def child_dir_name_to_child_dir_filenames_gen(ftp):
 if __name__ == "__main__":
     try:
         connection = connect_to_ftp(USERNAME, PASSWORD, FTP_LINK)
-        child_dir_name_to_child_dir_filenames_gen(change_directory_911_phone_calls(ABSOLUTE_PATH, connection))
+        ftp, child_directory_to_directory_contents_dict = child_dir_name_to_child_dir_filenames_gen(
+            change_directory_911_phone_calls(ABSOLUTE_PATH, connection))
+
+        for child_dir_name, child_dir_data in child_directory_to_directory_contents_dict.items():
+            print(child_dir_name)
+            print(f"number of files: {len(child_dir_data['files'])}")
+            run_stac_script(child_dir_data["ucn"], child_dir_data['files'])
+
     except ConnectionError as e:
         print(e)
-
-# MAIN LOOP
 
 
 
