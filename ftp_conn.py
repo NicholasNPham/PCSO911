@@ -134,6 +134,8 @@ def child_dir_name_to_child_dir_filenames_gen(ftp):
                     "ucn": ucn,
                     "files": child_directory_filename_list
                 }
+            else:
+                print(f"Warning: No valid files found in '{child_directory_name}'. Skipping.")
             ftp.cwd("..")
 
     # Uncommit this to check dictionary
