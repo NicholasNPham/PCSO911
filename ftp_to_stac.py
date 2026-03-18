@@ -21,7 +21,7 @@ from key import *
 # CONSTANTS
 CHROME_PATH = 'chromedriver-win64/chromedriver.exe'
 PAUSE_BETWEEN_ACTIONS_SECONDS = 1
-WEBDRIVER_WAIT_TIMEOUT_SECONDS = 20
+WEBDRIVER_WAIT_TIMEOUT_SECONDS = 10
 
 # HTML
 USERNAME_FIELD_ID = 'Username'
@@ -109,7 +109,7 @@ def search_by_ucn(driver, wait, ucn_value):
 
     return (driver, wait)
 
-def add_image(driver, wait):
+def add_image(driver, wait, file_list):
     """Navigate to the Images tab and trigger the file upload dialog.
 
     Args:
@@ -138,14 +138,16 @@ def add_image(driver, wait):
     file_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ADD_IMAGE_UPLOAD_DROPBOX_CSS_SELECTOR)))
     driver.execute_script("arguments[0].removeAttribute('class')", file_input)  # unhide the input
 
+    print("WORKED")
+
     # Uploading Files to the DropBox
-    full_paths = [("H:\\" + file) for file in file_path_list_test]
+    full_paths = [(TEMP_FILES_FOLDER + file) for file in file_list] # I have absolute path ready
     file_input.send_keys("\n".join(full_paths))
     time.sleep(1)
 
     return (driver, wait)
 
-def run_stac_script(universal_case_number):
+def run_stac_script(universal_case_number, file_list_from_dict):
     """
     Main orchestrator: setup, navigate, search, and add files.
     Args:
@@ -154,8 +156,9 @@ def run_stac_script(universal_case_number):
     driver, wait = setup_browser()
     driver, wait = navigate_to_search(driver, wait)
     driver, wait = search_by_ucn(driver, wait, universal_case_number)
-    driver, wait = add_image(driver, wait)
+    driver, wait = add_image(driver, wait, file_list_from_dict)
     time.sleep(WEBDRIVER_WAIT_TIMEOUT_SECONDS)
+    driver.quit()
 
 # LOOP TESTING
 # run_stac_script(test_case)
