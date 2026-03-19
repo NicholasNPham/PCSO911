@@ -14,6 +14,7 @@ from ftp_to_stac import run_stac_script
 COMPLETED_DIR_NAME = "__Completed"
 FTP_TYPE_DIR = "dir"
 FTP_TYPE_FILE = "file"
+DELETE_DIR_PREFIX = '_DELETE '
 
 # FUNCTIONS
 def connect_to_ftp(username, password, ftp_link):
@@ -77,6 +78,21 @@ def is_valid_file(filename, ftp):
     except ftplib.error_perm as e:
         print(f"Failed to get size of file: {e}")
         return False
+
+def rename_directory(ftp, old_name, prefix):
+    """
+    Renames a directory by adding a prefix to its current name.
+
+    Args:
+        ftp: FTP connection object
+        old_name: current directory name
+        prefix: prefix string to prepend to the directory name
+    """
+    try:
+        ftp.rename(old_name, prefix + old_name)
+        print(f"Renamed '{old_name}' to '{prefix + old_name}'")
+    except ftplib.error_perm as e:
+        print(f"Failed to rename '{old_name}': {e}")
 
 def download_files_to_temp(ftp, file_list):
     temp_dir =  r"H:\911_TEMP_FILES"
@@ -173,20 +189,27 @@ if __name__ == "__main__":
         ftp, child_directory_to_directory_contents_dict = child_dir_name_to_child_dir_filenames_gen(
             change_directory_911_phone_calls(ABSOLUTE_PATH, connection))
 
+# MAIN LOOP
         for child_dir_name, child_dir_data in child_directory_to_directory_contents_dict.items():
-            print(child_dir_name)
-            print(f"number of files: {len(child_dir_data['files'])}")
+            try:
+                print(child_dir_name)
+                print(f"number of files: {len(child_dir_data['files'])}")
 
-            ftp.cwd(child_dir_name)
-            temp_dir, local_file_paths = download_files_to_temp(ftp, child_dir_data["files"])
-            ftp.cwd("..")
+                ftp.cwd(child_dir_name)
+                temp_dir, local_file_paths = download_files_to_temp(ftp, child_dir_data["files"])
+                ftp.cwd("..")
 
-            run_stac_script(child_dir_data["ucn"], local_file_paths)
+                run_stac_script(child_dir_data["ucn"], local_file_paths)
 
-            delete_temp_dir(temp_dir)
+                delete_temp_dir(temp_dir)
+                rename_directory(ftp, child_dir_name, DELETE_DIR_PREFIX)
 
-    except ConnectionError as e:
-        print(e)
+            except Exception as e:
+                print(f"Failed to process '{child_dir_name}': {e}")
+                continue  # move on to the next dir instead of crashing the whole loop.
+
+    except Exception as e:
+        print(f"Fatal error during setup: {e}")
 
 
 
