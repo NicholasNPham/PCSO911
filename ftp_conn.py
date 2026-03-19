@@ -1,4 +1,4 @@
-# Standard Library Imp orts
+# Standard Library Imports
 import ftplib
 from ftplib import FTP
 import re
