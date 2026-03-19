@@ -138,11 +138,11 @@ def add_image(driver, wait, file_list):
     file_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ADD_IMAGE_UPLOAD_DROPBOX_CSS_SELECTOR)))
     driver.execute_script("arguments[0].removeAttribute('class')", file_input)  # unhide the input
 
-    print("WORKED")
-
     # Uploading Files to the DropBox
     file_input.send_keys("\n".join(file_list))
-    time.sleep(1)
+    time.sleep(PAUSE_BETWEEN_ACTIONS_SECONDS)
+
+    wait.until(EC.element_to_be_clickable((By.ID, "SaveImage"))).click()
 
     return (driver, wait)
 
