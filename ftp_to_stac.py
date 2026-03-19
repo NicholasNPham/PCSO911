@@ -40,7 +40,6 @@ IMAGE_SUB_TYPE_FIND_BUTTON_ID = "image_sub_typeFindButton"
 IMAGE_SUB_TYPE_ROW_XPATH = "//span[text()='911AUDIO']"
 SELECT_BUTTON_XPATH = "//span[text()='Select']/parent::button"
 ADD_IMAGE_UPLOAD_DROPBOX_CSS_SELECTOR = "input[id^='cipFileUpload_TelerikUpload']"
-RESET_CSS_SELECTOR = "[data-menuid='mystac']"  # UNNEEDED RIGHT NOW.
 
 # FUNCTIONS
 def setup_browser():
