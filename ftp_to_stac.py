@@ -115,6 +115,7 @@ def add_image(driver, wait, file_list):
     Args:
         driver (WebDriver): Selenium Chrome driver.
         wait (WebDriverWait): WebDriverWait object for explicit waits.
+        file_list (list): List of files to add.
 
     Returns:
         tuple (WebDriver, WebDriverWait): Unchanged driver and wait for chaining.
@@ -151,6 +152,7 @@ def run_stac_script(universal_case_number, file_list_from_dict):
     Main orchestrator: setup, navigate, search, and add files.
     Args:
          universal_case_number (str): Universal Case Number.
+         file_list_from_dict (dict): Dictionary of files to add.
     """
     driver, wait = setup_browser()
     driver, wait = navigate_to_search(driver, wait)
