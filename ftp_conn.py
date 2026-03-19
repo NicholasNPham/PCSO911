@@ -3,7 +3,6 @@ import ftplib
 from ftplib import FTP
 import re
 import os
-import tempfile
 import shutil
 
 # Local Imports
@@ -15,6 +14,7 @@ COMPLETED_DIR_NAME = "__Completed"
 FTP_TYPE_DIR = "dir"
 FTP_TYPE_FILE = "file"
 DELETE_DIR_PREFIX = '_DELETE '
+TEMP_DIR =  r"H:\911_TEMP_FILES"
 
 # FUNCTIONS
 def connect_to_ftp(username, password, ftp_link):
@@ -87,26 +87,56 @@ def rename_directory(ftp, old_name, prefix):
         ftp: FTP connection object
         old_name: current directory name
         prefix: prefix string to prepend to the directory name
+    Returns:
+        new directory name or None if rename fails
     """
     try:
+        new_name = prefix + old_name
         ftp.rename(old_name, prefix + old_name)
         print(f"Renamed '{old_name}' to '{prefix + old_name}'")
+        return new_name
     except ftplib.error_perm as e:
         print(f"Failed to rename '{old_name}': {e}")
+        return None
+
+def move_to_completed(ftp, dir_name, completed_folder):
+    """
+    Moves a directory into the completed folder.
+
+    Args:
+        ftp: FTP connection object
+        dir_name: current directory name
+        completed_folder: name of the completed folder to move into
+    """
+    try:
+        ftp.rename(dir_name, f"{completed_folder}/{dir_name}")
+        print(f"Moved '{dir_name}' to '{completed_folder}/{dir_name}'")
+    except ftplib.error_perm as e:
+        print(f"Failed to move '{dir_name}' : {e}")
 
 def download_files_to_temp(ftp, file_list):
-    temp_dir =  r"H:\911_TEMP_FILES"
-    os.makedirs(temp_dir, exist_ok=True)
+    """
+        Downloads a list of files to a temp folder.
+
+    Args:
+        ftp: FTP connection object
+        file_list: list of filenames to download
+    Returns:
+        tuple:
+            - TEMP_DIR: path to the temp directory
+            - local_file_path: list of local file paths
+    """
+    os.makedirs(TEMP_DIR, exist_ok=True)
     local_file_path = []
 
     for filename in file_list:
-        local_path = os.path.join(temp_dir, filename)
+        local_path = os.path.join(TEMP_DIR, filename)
         with open(local_path, "wb") as file:
             ftp.retrbinary(f"RETR {filename}", file.write)
         local_file_path.append(local_path)
         print(f"Downloaded {filename} to {local_path}")
 
-    return temp_dir, local_file_path
+    return TEMP_DIR, local_file_path
 
 def delete_temp_dir(temp_dir):
     """Deletes the temp directory and all its contents."""
@@ -202,7 +232,9 @@ if __name__ == "__main__":
                 run_stac_script(child_dir_data["ucn"], local_file_paths)
 
                 delete_temp_dir(temp_dir)
-                rename_directory(ftp, child_dir_name, DELETE_DIR_PREFIX)
+                renamed = rename_directory(ftp, child_dir_name, DELETE_DIR_PREFIX)
+                if renamed:
+                    move_to_completed(ftp, renamed, COMPLETED_DIR_NAME)
 
             except Exception as e:
                 print(f"Failed to process '{child_dir_name}': {e}")
