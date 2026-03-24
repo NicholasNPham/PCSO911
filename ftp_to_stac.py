@@ -23,6 +23,7 @@ from key import *
 CHROME_PATH = 'chromedriver-win64/chromedriver.exe'
 PAUSE_BETWEEN_ACTIONS_SECONDS = 1
 WEBDRIVER_WAIT_TIMEOUT_SECONDS = 5
+EXCLUDED_TOKENS = {"AM", "SVP", "AME", "SO", "AMSP", "JLA", "PJLA", "SP", "ALERT", "BKGRDALERT", "CP", "DO", "NOT", "USE", "GANG", "NCP", "NO", "CC", "OSCP", "SPCALERT", "TTP", "VFOSC"}
 
 # HTML
 USERNAME_FIELD_ID = 'Username'
@@ -43,10 +44,12 @@ SELECT_BUTTON_XPATH = "//span[text()='Select']/parent::button"
 ADD_IMAGE_UPLOAD_DROPBOX_CSS_SELECTOR = "input[id^='cipFileUpload_TelerikUpload']"
 CASE_NAME_FROM_STAC_UCN_SEARCH = "td[data-original-column-name='Def_Name'] span.k-button-text"
 
-# HELPER FUNCTIONS
 def names_match(stac_name, child_dir_name):
-    stac_tokens = set(re.findall(r'[a-zA-Z]+', stac_name.upper()))
-    dir_tokens = set(re.findall(r'[a-zA-Z]+', child_dir_name.upper()))
+    stac_name = re.sub(r'\(.*?\)', '', stac_name)
+    stac_tokens = set(w for w in re.findall(r'[a-zA-Z]+', stac_name.upper()) if w not in EXCLUDED_TOKENS)
+    dir_tokens = set(w for w in re.findall(r'[a-zA-Z]+', child_dir_name.upper()) if w not in EXCLUDED_TOKENS)
+    print(f"STAC tokens: {stac_tokens}")
+    print(f"DIR tokens: {dir_tokens}")
     return stac_tokens.issubset(dir_tokens) or dir_tokens.issubset(stac_tokens)
 
 # FUNCTIONS
