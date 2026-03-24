@@ -44,10 +44,10 @@ ADD_IMAGE_UPLOAD_DROPBOX_CSS_SELECTOR = "input[id^='cipFileUpload_TelerikUpload'
 CASE_NAME_FROM_STAC_UCN_SEARCH = "td[data-original-column-name='Def_Name'] span.k-button-text"
 
 # HELPER FUNCTIONS
-def names_match(result_name, child_dir_name):
-    clean_result = re.sub(r'[^a-zA-Z]', '', result_name).upper()
-    clean_dir = re.sub(r'[^a-zA-Z]', '', child_dir_name).upper()
-    return clean_result in clean_dir
+def names_match(stac_name, child_dir_name):
+    stac_tokens = set(re.findall(r'[a-zA-Z]+', stac_name.upper()))
+    dir_tokens = set(re.findall(r'[a-zA-Z]+', child_dir_name.upper()))
+    return stac_tokens.issubset(dir_tokens)
 
 # FUNCTIONS
 def setup_browser():
@@ -120,6 +120,9 @@ def search_by_ucn(driver, wait, ucn_value, child_dir_name):
     else:
         print("DEFENDANT DOES NOT MATCH 911 CHILD DIRECTORY NAME")
 
+    print(f"STAC name: '{stac_case_name}'")
+    print(f"DIR name: '{child_dir_name}'")
+
     time.sleep(PAUSE_BETWEEN_ACTIONS_SECONDS)
 
     return (driver, wait), is_match
@@ -176,6 +179,8 @@ def run_stac_script(universal_case_number, file_list_from_dict, child_dir_name):
         driver, wait = add_image(driver, wait, file_list_from_dict)
     time.sleep(WEBDRIVER_WAIT_TIMEOUT_SECONDS)
     driver.quit()
+
+    return is_match
 
 # LOOP TESTING
 # run_stac_script(test_case)

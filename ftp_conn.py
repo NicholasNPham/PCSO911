@@ -229,12 +229,16 @@ if __name__ == "__main__":
                 temp_dir, local_file_paths = download_files_to_temp(ftp, child_dir_data["files"])
                 ftp.cwd("..")
 
-                run_stac_script(child_dir_data["ucn"], local_file_paths, child_dir_name)
+                is_match = run_stac_script(child_dir_data["ucn"], local_file_paths, child_dir_name)
+                if is_match:
+                    delete_temp_dir(temp_dir)
+                    renamed = rename_directory(ftp, child_dir_name, DELETE_DIR_PREFIX)
 
-                delete_temp_dir(temp_dir)
-                renamed = rename_directory(ftp, child_dir_name, DELETE_DIR_PREFIX)
-                if renamed:
-                    move_to_completed(ftp, renamed, COMPLETED_DIR_NAME)
+                    if renamed:
+                        move_to_completed(ftp, renamed, COMPLETED_DIR_NAME)
+
+                else:
+                    delete_temp_dir(temp_dir)
 
             except Exception as e:
                 print(f"Failed to process '{child_dir_name}': {e}")
