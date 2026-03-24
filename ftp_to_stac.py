@@ -116,9 +116,13 @@ def search_by_ucn(driver, wait, ucn_value, child_dir_name):
     is_match = names_match(stac_case_name, child_dir_name)
     if is_match:
         wait.until(EC.element_to_be_clickable((By.ID, IMAGES_TAB_OF_CASE_ID))).click()
+        print("-------------------")
         print("DEFENDANT MATCHES 911 CHILD DIRECTORY NAME")
+        print("-------------------")
     else:
+        print("-------------------")
         print("DEFENDANT DOES NOT MATCH 911 CHILD DIRECTORY NAME")
+        print("-------------------")
 
     print(f"STAC name: '{stac_case_name}'")
     print(f"DIR name: '{child_dir_name}'")
