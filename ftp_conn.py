@@ -229,7 +229,7 @@ if __name__ == "__main__":
                 temp_dir, local_file_paths = download_files_to_temp(ftp, child_dir_data["files"])
                 ftp.cwd("..")
 
-                run_stac_script(child_dir_data["ucn"], local_file_paths)
+                run_stac_script(child_dir_data["ucn"], local_file_paths, child_dir_name)
 
                 delete_temp_dir(temp_dir)
                 renamed = rename_directory(ftp, child_dir_name, DELETE_DIR_PREFIX)
@@ -243,5 +243,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"Fatal error during setup: {e}")
 
-
+# To run this Script use this command to create a log.txt with date and time
+# python ftp_conn.py | tee "H:\911_RUN_REPORT_LOGS\log_$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss').txt"
 

@@ -7,6 +7,7 @@ via the STAC web interface using Selenium WebDriver automation.
 
 # Standard Library Imports
 import time
+import re
 
 # Third-party Imports
 from selenium import webdriver
@@ -40,6 +41,13 @@ IMAGE_SUB_TYPE_FIND_BUTTON_ID = "image_sub_typeFindButton"
 IMAGE_SUB_TYPE_ROW_XPATH = "//span[text()='911AUDIO']"
 SELECT_BUTTON_XPATH = "//span[text()='Select']/parent::button"
 ADD_IMAGE_UPLOAD_DROPBOX_CSS_SELECTOR = "input[id^='cipFileUpload_TelerikUpload']"
+CASE_NAME_FROM_STAC_UCN_SEARCH = "td[data-original-column-name='Def_Name'] span.k-button-text"
+
+# HELPER FUNCTIONS
+def names_match(result_name, child_dir_name):
+    clean_result = re.sub(r'[^a-zA-Z]', '', result_name).upper()
+    clean_dir = re.sub(r'[^a-zA-Z]', '', child_dir_name).upper()
+    return clean_result in clean_dir
 
 # FUNCTIONS
 def setup_browser():
@@ -86,13 +94,13 @@ def navigate_to_search(driver, wait):
 
     return (driver, wait)
 
-def search_by_ucn(driver, wait, ucn_value):
+def search_by_ucn(driver, wait, ucn_value, child_dir_name):
     """Search for a case by Universal Case Number (UCN).
 
     Args:
         driver (WebDriver): Selenium Chrome driver.
         wait (WebDriverWait): WebDriverWait object for explicit waits.
-        ucn_value (str): Universal Case Number to search for.
+        ucn_value (str):1 HO Universal Case Number to search for.
 
     Returns:
         tuple (WebDriver, WebDriverWait): Unchanged driver and wait for chaining.
@@ -104,9 +112,17 @@ def search_by_ucn(driver, wait, ucn_value):
     wait.until(EC.element_to_be_clickable((By.XPATH, UCN_SEARCH_BAR_DROPDOWN_OPTION_XPATH))).click()
     driver.find_element(By.ID, SEARCH_BAR_FIELD_ID).send_keys(ucn_value)
     driver.find_element(By.ID, SEARCH_BAR_BUTTON_ID).click()
+    stac_case_name = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, CASE_NAME_FROM_STAC_UCN_SEARCH))).text
+    is_match = names_match(stac_case_name, child_dir_name)
+    if is_match:
+        wait.until(EC.element_to_be_clickable((By.ID, IMAGES_TAB_OF_CASE_ID))).click()
+        print("DEFENDANT MATCHES 911 CHILD DIRECTORY NAME")
+    else:
+        print("DEFENDANT DOES NOT MATCH 911 CHILD DIRECTORY NAME")
+
     time.sleep(PAUSE_BETWEEN_ACTIONS_SECONDS)
 
-    return (driver, wait)
+    return (driver, wait), is_match
 
 def add_image(driver, wait, file_list):
     """Navigate to the Images tab and trigger the file upload dialog.
@@ -123,7 +139,6 @@ def add_image(driver, wait, file_list):
         TimeoutException: If the Images tab or Add button fails to become clickable.
         NoSuchElementException: If the dropdown menu or file upload button cannot be found.
     """
-    wait.until(EC.element_to_be_clickable((By.ID, IMAGES_TAB_OF_CASE_ID))).click()
     wait.until(EC.element_to_be_clickable((By.ID, ADD_BUTTON_BAR_OF_IMAGES_ID))).click()
     add_image_dropdown_button = driver.find_element(By.CSS_SELECTOR, ADD_IMAGE_DROPDOWN_MENU_CSS_SELECTOR)
     driver.execute_script("arguments[0].click();", add_image_dropdown_button)
@@ -146,7 +161,8 @@ def add_image(driver, wait, file_list):
 
     return (driver, wait)
 
-def run_stac_script(universal_case_number, file_list_from_dict):
+# MAIN LOOP FUNCTIONS
+def run_stac_script(universal_case_number, file_list_from_dict, child_dir_name):
     """
     Main orchestrator: setup, navigate, search, and add files.
     Args:
@@ -155,8 +171,9 @@ def run_stac_script(universal_case_number, file_list_from_dict):
     """
     driver, wait = setup_browser()
     driver, wait = navigate_to_search(driver, wait)
-    driver, wait = search_by_ucn(driver, wait, universal_case_number)
-    driver, wait = add_image(driver, wait, file_list_from_dict)
+    (driver, wait), is_match = search_by_ucn(driver, wait, universal_case_number, child_dir_name)
+    if is_match:
+        driver, wait = add_image(driver, wait, file_list_from_dict)
     time.sleep(WEBDRIVER_WAIT_TIMEOUT_SECONDS)
     driver.quit()
 
