@@ -47,7 +47,7 @@ CASE_NAME_FROM_STAC_UCN_SEARCH = "td[data-original-column-name='Def_Name'] span.
 def names_match(stac_name, child_dir_name):
     stac_tokens = set(re.findall(r'[a-zA-Z]+', stac_name.upper()))
     dir_tokens = set(re.findall(r'[a-zA-Z]+', child_dir_name.upper()))
-    return stac_tokens.issubset(dir_tokens)
+    return stac_tokens.issubset(dir_tokens) or dir_tokens.issubset(stac_tokens)
 
 # FUNCTIONS
 def setup_browser():
