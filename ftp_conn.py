@@ -223,6 +223,7 @@ if __name__ == "__main__":
 # MAIN LOOP
         for child_dir_name, child_dir_data in child_directory_to_directory_contents_dict.items():
             try:
+                print("-----------------------------------------------")
                 print(child_dir_name)
                 print(f"number of files: {len(child_dir_data['files'])}")
 
