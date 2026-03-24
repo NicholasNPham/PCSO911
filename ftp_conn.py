@@ -140,8 +140,9 @@ def download_files_to_temp(ftp, file_list):
 
 def delete_temp_dir(temp_dir):
     """Deletes the temp directory and all its contents."""
-    shutil.rmtree(temp_dir)
-    print(f"Deleted temp directory: {temp_dir}")
+    if os.path.exists(temp_dir):
+        shutil.rmtree(temp_dir)
+        print(f"Deleted temp directory: {temp_dir}")
 
 def extract_ucn_from_child_dir_name(child_dir_name):
     """
@@ -218,7 +219,7 @@ if __name__ == "__main__":
         connection = connect_to_ftp(USERNAME, PASSWORD, FTP_LINK)
         ftp, child_directory_to_directory_contents_dict = child_dir_name_to_child_dir_filenames_gen(
             change_directory_911_phone_calls(ABSOLUTE_PATH, connection))
-
+        delete_temp_dir(TEMP_DIR)
 # MAIN LOOP
         for child_dir_name, child_dir_data in child_directory_to_directory_contents_dict.items():
             try:
