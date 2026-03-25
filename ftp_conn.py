@@ -155,7 +155,7 @@ def extract_ucn_from_child_dir_name(child_dir_name):
         UCN string if found, otherwise None.
     """
 
-    universal_case_number = re.search(UNIVERSAL_CASE_NUMBER_PATTERN, child_dir_name)
+    universal_case_number = re.search(UNIVERSAL_CASE_NUMBER_PATTERN, child_dir_name, re.IGNORECASE)
 
     if universal_case_number:
         return universal_case_number.group()
