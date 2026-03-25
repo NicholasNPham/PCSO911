@@ -187,6 +187,8 @@ def child_dir_name_to_child_dir_filenames_gen(ftp):
 
         if child_directory_name == COMPLETED_DIR_NAME:
             continue
+        elif child_directory_name.startswith(DELETE_DIR_PREFIX):  # <-- ADD THIS
+            continue
         elif attribute.get("type") == FTP_TYPE_DIR:
             child_directory_filename_list = []
             ftp.cwd(child_directory_name)
