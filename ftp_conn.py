@@ -74,6 +74,7 @@ def is_valid_file(filename, ftp):
             return True
         else:
             print(f"File '{filename}' is 0 bytes. Skipping.")
+            print("-------------------")
             return False
     except ftplib.error_perm as e:
         print(f"Failed to get size of file: {e}")
@@ -94,9 +95,11 @@ def rename_directory(ftp, old_name, prefix):
         new_name = prefix + old_name
         ftp.rename(old_name, prefix + old_name)
         print(f"Renamed '{old_name}' to '{prefix + old_name}'")
+        print("-------------------")
         return new_name
     except ftplib.error_perm as e:
         print(f"Failed to rename '{old_name}': {e}")
+        print("-------------------")
         return None
 
 def move_to_completed(ftp, dir_name, completed_folder):
@@ -113,6 +116,7 @@ def move_to_completed(ftp, dir_name, completed_folder):
         print(f"Moved '{dir_name}' to '{completed_folder}/{dir_name}'")
     except ftplib.error_perm as e:
         print(f"Failed to move '{dir_name}' : {e}")
+        print("-------------------")
 
 def download_files_to_temp(ftp, file_list):
     """
@@ -135,6 +139,7 @@ def download_files_to_temp(ftp, file_list):
             ftp.retrbinary(f"RETR {filename}", file.write)
         local_file_path.append(local_path)
         print(f"Downloaded {filename} to {local_path}")
+    print("-------------------")
 
     return TEMP_DIR, local_file_path
 
@@ -143,6 +148,7 @@ def delete_temp_dir(temp_dir):
     if os.path.exists(temp_dir):
         shutil.rmtree(temp_dir)
         print(f"Deleted temp directory: {temp_dir}")
+        print("-------------------")
 
 def extract_ucn_from_child_dir_name(child_dir_name):
     """
@@ -211,7 +217,9 @@ def child_dir_name_to_child_dir_filenames_gen(ftp):
             ftp.cwd("..")
 
     # Uncommit this to check dictionary
-    print(child_directory_to_directory_contents_dict)
+    # print("-------------------------")
+    # print(child_directory_to_directory_contents_dict)
+    # print("-------------------------")
 
     return ftp, child_directory_to_directory_contents_dict
 
@@ -226,8 +234,10 @@ if __name__ == "__main__":
         for child_dir_name, child_dir_data in child_directory_to_directory_contents_dict.items():
             try:
                 print("-----------------------------------------------")
+                print("-----------------------------------------------")
                 print(child_dir_name)
                 print(f"number of files: {len(child_dir_data['files'])}")
+                print("-vvvvvvvvvvvvvvvvvvvvvvv-")
 
                 ftp.cwd(child_dir_name)
                 temp_dir, local_file_paths = download_files_to_temp(ftp, child_dir_data["files"])

@@ -45,11 +45,28 @@ ADD_IMAGE_UPLOAD_DROPBOX_CSS_SELECTOR = "input[id^='cipFileUpload_TelerikUpload'
 CASE_NAME_FROM_STAC_UCN_SEARCH = "td[data-original-column-name='Def_Name'] span.k-button-text"
 
 def names_match(stac_name, child_dir_name):
+    """
+    Check whether two names are a fuzzy match by comparing their word tokens.
+
+    Strips parenthetical content from the STAC name, tokenizes both names into
+    uppercase alphabetic words, filters out excluded tokens, and returns True if
+    either token set is a subset of the other.
+
+    Args:
+        stac_name (str): The name from the STAC catalog (may contain parenthetical content).
+        child_dir_name (str): The directory name to compare against.
+
+    Returns:
+        bool: True if one token set is a subset of the other, False otherwise.
+    """
     stac_name = re.sub(r'\(.*?\)', '', stac_name)
     stac_tokens = set(w for w in re.findall(r'[a-zA-Z]+', stac_name.upper()) if w not in EXCLUDED_TOKENS)
     dir_tokens = set(w for w in re.findall(r'[a-zA-Z]+', child_dir_name.upper()) if w not in EXCLUDED_TOKENS)
-    print(f"STAC tokens: {stac_tokens}")
-    print(f"DIR tokens: {dir_tokens}")
+
+    # Uncommit This to View Name Tokens
+    # print(f"STAC tokens: {stac_tokens}")
+    # print(f"DIR tokens: {dir_tokens}")
+
     return stac_tokens.issubset(dir_tokens) or dir_tokens.issubset(stac_tokens)
 
 # FUNCTIONS
@@ -127,8 +144,9 @@ def search_by_ucn(driver, wait, ucn_value, child_dir_name):
         print("DEFENDANT DOES NOT MATCH 911 CHILD DIRECTORY NAME")
         print("-------------------")
 
-    print(f"STAC name: '{stac_case_name}'")
-    print(f"DIR name: '{child_dir_name}'")
+    # Uncommit this to View STAC & DIR Name
+    # print(f"STAC name: '{stac_case_name}'")
+    # print(f"DIR name: '{child_dir_name}'")
 
     time.sleep(PAUSE_BETWEEN_ACTIONS_SECONDS)
 
