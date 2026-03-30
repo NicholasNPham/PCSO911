@@ -23,7 +23,7 @@ from key import *
 CHROME_PATH = 'chromedriver-win64/chromedriver.exe'
 PAUSE_BETWEEN_ACTIONS_SECONDS = 1
 WEBDRIVER_WAIT_TIMEOUT_SECONDS = 5
-EXCLUDED_TOKENS = {"AM", "SVP", "AME", "SO", "AMSP", "JLA", "PJLA", "SP", "ALERT", "BKGRDALERT", "CP", "DO", "NOT", "USE", "GANG", "NCP", "NO", "CC", "OSCP", "SPCALERT", "TTP", "VFOSC"}
+EXCLUDED_TOKENS = {"AM", "SVP", "AME", "SO", "AMSP", "JLA", "PJLA", "SP", "ALERT", "BKGRDALERT", "CP", "DO", "NOT", "USE", "GANG", "NCP", "NO", "CC", "OSCP", "SPCALERT", "TTP", "VFOSC", "HA"}
 
 # HTML
 USERNAME_FIELD_ID = 'Username'
