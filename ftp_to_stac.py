@@ -110,7 +110,7 @@ def navigate_to_search(driver, wait):
     """
     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, CASES_SIDEBAR_BUTTON_CSS_SELECTOR))).click() # clicks on cases sidebar
     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, SEARCH_BAR_DROPDOWN_OPTION_CSS_SELECTOR))).click() # clicks on the dropdown menu
-    wait.until(EC.element_to_be_clickable((By.XPATH, UCN_SEARCH_BAR_DROPDOWN_OPTION_XPATH))) # this only waits to see if any one of the options is clickable
+    wait.until(EC.element_to_be_clickable((By.XPATH, UCN_SEARCH_BAR_DROPDOWN_OPTION_XPATH))).click() # this only waits to see if any one of the options is clickable
 
     return (driver, wait)
 
@@ -136,11 +136,9 @@ def search_by_ucn(driver, wait, ucn_value, child_dir_name):
     is_match = names_match(stac_case_name, child_dir_name)
     if is_match:
         wait.until(EC.element_to_be_clickable((By.ID, IMAGES_TAB_OF_CASE_ID))).click()
-        print("-------------------")
         print("DEFENDANT MATCHES 911 CHILD DIRECTORY NAME")
         print("-------------------")
     else:
-        print("-------------------")
         print("DEFENDANT DOES NOT MATCH 911 CHILD DIRECTORY NAME")
         print("-------------------")
 
