@@ -59,6 +59,24 @@ def change_directory_911_phone_calls(absolute_path, ftp):
         ftp.quit()
         raise ConnectionError(f"Failed to Change Directory: {e}")
 
+def reformat_unknown_ucn(ucn):
+    """
+    Reformats a UCN where the second-to-last group is '0000' by replacing
+    the first zero with 'A', indicating an unknown case number.
+
+    Args:
+        ucn (str): Universal Case Number string.
+
+    Returns:
+        str: Reformatted UCN with 'A000' in the second-to-last group if the
+             condition is met, otherwise returns the original UCN unchanged.
+    """
+    ucn_in_group = ucn.split("-")
+    if ucn_in_group[-2] == "0000":
+        ucn_in_group[-2] = "A000"
+        return "-".join(ucn_in_group)
+    return ucn
+
 def is_valid_file(filename, ftp):
     """
     checks to see if the file has a size thats bigger than 0 megabytes
@@ -229,12 +247,13 @@ if __name__ == "__main__":
         connection = connect_to_ftp(USERNAME, PASSWORD, FTP_LINK)
         ftp, child_directory_to_directory_contents_dict = child_dir_name_to_child_dir_filenames_gen(
             change_directory_911_phone_calls(ABSOLUTE_PATH, connection))
-        delete_temp_dir(TEMP_DIR)
+
+        if os.path.exists(TEMP_DIR):
+            delete_temp_dir(TEMP_DIR)
 # MAIN LOOP
         for child_dir_name, child_dir_data in child_directory_to_directory_contents_dict.items():
             try:
-                print("-----------------------------------------------")
-                print("-----------------------------------------------")
+                print("V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V")
                 print(child_dir_name)
                 print(f"number of files: {len(child_dir_data['files'])}")
                 print("-vvvvvvvvvvvvvvvvvvvvvvv-")
@@ -243,7 +262,7 @@ if __name__ == "__main__":
                 temp_dir, local_file_paths = download_files_to_temp(ftp, child_dir_data["files"])
                 ftp.cwd("..")
 
-                is_match = run_stac_script(child_dir_data["ucn"], local_file_paths, child_dir_name)
+                is_match = run_stac_script(reformat_unknown_ucn(child_dir_data["ucn"]), local_file_paths, child_dir_name)
                 if is_match:
                     delete_temp_dir(temp_dir)
                     renamed = rename_directory(ftp, child_dir_name, DELETE_DIR_PREFIX)
