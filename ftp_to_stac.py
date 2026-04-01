@@ -165,6 +165,18 @@ def add_image(driver, wait, file_list):
         TimeoutException: If the Images tab or Add button fails to become clickable.
         NoSuchElementException: If the dropdown menu or file upload button cannot be found.
     """
+
+    # Testing to see if the all listview content needs to finish loading before new image can be clicked
+    # wait.until(EC.element_to_be_clickable((By.ID, IMAGES_TAB_OF_CASE_ID))).click()
+    # wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".k-listview-content")))
+    # wait.until(EC.element_to_be_clickable((By.ID, ADD_BUTTON_BAR_OF_IMAGES_ID))).click()
+    # time.sleep(PAUSE_BETWEEN_ACTIONS_SECONDS)
+    # driver.execute_script("""
+    #         var el = document.querySelector('[data-id="newImage"]');
+    #         el.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true}));
+    #     """)
+    # time.sleep(PAUSE_BETWEEN_ACTIONS_SECONDS)
+
     wait.until(EC.element_to_be_clickable((By.ID, ADD_BUTTON_BAR_OF_IMAGES_ID))).click()
     add_image_dropdown_button = driver.find_element(By.CSS_SELECTOR, ADD_IMAGE_DROPDOWN_MENU_CSS_SELECTOR)
     driver.execute_script("arguments[0].click();", add_image_dropdown_button)
