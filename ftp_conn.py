@@ -72,9 +72,10 @@ def reformat_unknown_ucn(ucn):
              condition is met, otherwise returns the original UCN unchanged.
     """
     ucn_in_group = ucn.split("-")
-    if ucn_in_group[-2] == "0000":
+    if ucn_in_group[-2] == "0000" and ucn_in_group[2] == "CJ":
         ucn_in_group[-2] = "A000"
-        return "-".join(ucn_in_group)
+        reformatted_ucn = "-".join(ucn_in_group)
+        return reformatted_ucn[:-3]
     return ucn
 
 def is_valid_file(filename, ftp):
@@ -261,6 +262,11 @@ if __name__ == "__main__":
                 ftp.cwd(child_dir_name)
                 temp_dir, local_file_paths = download_files_to_temp(ftp, child_dir_data["files"])
                 ftp.cwd("..")
+
+                ucn = child_dir_data["ucn"]
+                reformatted = reformat_unknown_ucn(ucn)
+                print(f"Original UCN: {ucn}")
+                print(f"Reformatted UCN: {reformatted}")
 
                 is_match = run_stac_script(reformat_unknown_ucn(child_dir_data["ucn"]), local_file_paths, child_dir_name)
                 if is_match:
