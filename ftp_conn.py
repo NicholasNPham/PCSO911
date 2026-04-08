@@ -11,6 +11,8 @@ from ftp_to_stac import run_stac_script
 
 # CONSTANTS
 COMPLETED_DIR_NAME = "__Completed"
+DELETE_DIR_PREFIX = "_Deleted"
+ERROR_HTM_PREFIX = "ERROR_HTM"
 FTP_TYPE_DIR = "dir"
 FTP_TYPE_FILE = "file"
 DELETE_DIR_PREFIX = '_DELETE '
@@ -121,6 +123,42 @@ def rename_directory(ftp, old_name, prefix):
         print("-------------------")
         return None
 
+def dir_contains_htm_file(ftp):
+    """
+    Scans the current FTP directory for any .htm or .html files.
+
+    Args:
+        ftp: FTP connection object (already cd'd into the child directory)
+
+    Returns:
+        bool: True if any .htm or .html file is found, False otherwise.
+    """
+    for filename, attributes in ftp.mlsd("."):
+        if attributes.get("type") == FTP_TYPE_FILE:
+            if filename.lower().endswith((".htm", ".html")):
+                print(f"HTM/HTML file detected: '{filename}'")
+                return True
+    return False
+
+def should_skip_directory(child_directory_name):
+    """
+    Determines whether a child directory should be skipped during processing.
+
+    Args:
+        child_directory_name (str): Name of the child directory to check.
+
+    Returns:
+        bool: True if the directory should be skipped, False otherwise.
+    """
+    if child_directory_name == COMPLETED_DIR_NAME:
+        return True
+    if child_directory_name.startswith(DELETE_DIR_PREFIX):
+        return True
+    if child_directory_name.startswith(ERROR_HTM_PREFIX):
+        return True
+    return False
+
+
 def move_to_completed(ftp, dir_name, completed_folder):
     """
     Moves a directory into the completed folder.
@@ -199,27 +237,27 @@ def child_dir_name_to_child_dir_filenames_gen(ftp):
         tuple:
             - ftp: FTP connection object
             - child_directory_to_directory_contents_dict (dict): dictionary where
-              each key is a child directory name and each value is a list of
-              filenames inside that child directory.
-              Example: {
-                  "child_dir_1": {"UCN": UCN, "files": ["file1.pdf", "file2.mp3"]},
-                  "child_dir_2": {"UCN": UCN, "files": ["file3.pdf"]}
-              }
-    """
+                each key is a child directory name and each value is a list of
+                filenames inside that child directory.
+                Example: {
+                    "child_dir_1": {"ucn": UCN, "has_htm": False, "files": ["file1.mp3", "file2.wav"]},
+                    "child_dir_2": {"ucn": UCN, "has_htm": True,  "files": ["file3.mp3"]}
+                }
+        """
     child_directory_to_directory_contents_dict = {}
 
     for child_directory_name, attribute in ftp.mlsd("."):
-
-        if child_directory_name == COMPLETED_DIR_NAME:
-            continue
-        elif child_directory_name.startswith(DELETE_DIR_PREFIX):  # <-- ADD THIS
+        if should_skip_directory(child_directory_name):
             continue
         elif attribute.get("type") == FTP_TYPE_DIR:
-            child_directory_filename_list = []
             ftp.cwd(child_directory_name)
+            has_htm = dir_contains_htm_file(ftp)  # <-- checks for HTM
+
+            child_directory_filename_list = []
             for filename, attributes in ftp.mlsd("."):
                 if attributes.get("type") == FTP_TYPE_FILE and is_valid_file(filename, ftp):
-                    child_directory_filename_list.append(filename)
+                    if not filename.lower().endswith((".htm", ".html")):
+                        child_directory_filename_list.append(filename)
 
             if child_directory_filename_list:
                 ucn = extract_ucn_from_child_dir_name(child_directory_name)
@@ -229,6 +267,7 @@ def child_dir_name_to_child_dir_filenames_gen(ftp):
                     continue
                 child_directory_to_directory_contents_dict[child_directory_name] = {
                     "ucn": ucn,
+                    "has_htm": has_htm,
                     "files": child_directory_filename_list
                 }
             else:
