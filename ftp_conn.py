@@ -11,13 +11,23 @@ from ftp_to_stac import run_stac_script
 
 # CONSTANTS
 COMPLETED_DIR_NAME = "__Completed"
-DELETE_DIR_PREFIX = "_Deleted"
-ERROR_HTM_PREFIX = "ERROR_HTM"
 HAS_HTM_KEY = "has_htm"
 FTP_TYPE_DIR = "dir"
 FTP_TYPE_FILE = "file"
+ERROR_HTM_PREFIX = '_ERROR_HTM '
 DELETE_DIR_PREFIX = '_DELETE '
 TEMP_DIR =  r"H:\911_TEMP_FILES"
+
+# UCN CONSTANTS
+UCN_SEPARATOR = "-"
+UCN_UNKNOWN_GROUP = "0000"
+UCN_CASE_TYPE = "CJ"
+UCN_CASE_TYPE_INDEX = 2
+UCN_SEQUENCE_GROUP_INDEX = -2
+UCN_UNKNOWN_REPLACEMENT = "A000"
+UCN_TRIM_LENGTH = -3
+
+
 
 # FUNCTIONS
 def connect_to_ftp(username, password, ftp_link):
@@ -38,10 +48,9 @@ def connect_to_ftp(username, password, ftp_link):
         ftp.login(username, password)
         print("Login Successful")
         return ftp
-    except ftplib.error_perm as e:
-        print(f"Login Failed: {e}")
+    except ftplib.error_perm as LOGIN_ERROR:
         ftp.quit()
-        raise ConnectionError(f"Login Failed: {e}")
+        raise ConnectionError(f"Login Failed: {LOGIN_ERROR}")
 
 def change_directory_911_phone_calls(absolute_path, ftp):
     """
@@ -57,10 +66,9 @@ def change_directory_911_phone_calls(absolute_path, ftp):
         ftp.cwd(absolute_path)
         print("Changed Directory to PSCO911")
         return ftp
-    except ftplib.error_perm as e:
-        print(f"Failed to Changed Directory: {e}")
+    except ftplib.error_perm as CHANGE_DIRECTORY_ERROR:
         ftp.quit()
-        raise ConnectionError(f"Failed to Change Directory: {e}")
+        raise ConnectionError(f"Failed to Change Directory: {CHANGE_DIRECTORY_ERROR}")
 
 def reformat_unknown_ucn(ucn):
     """
@@ -74,11 +82,11 @@ def reformat_unknown_ucn(ucn):
         str: Reformatted UCN with 'A000' in the second-to-last group if the
              condition is met, otherwise returns the original UCN unchanged.
     """
-    ucn_in_group = ucn.split("-")
-    if ucn_in_group[-2] == "0000" and ucn_in_group[2] == "CJ":
-        ucn_in_group[-2] = "A000"
-        reformatted_ucn = "-".join(ucn_in_group)
-        return reformatted_ucn[:-3]
+    ucn_in_group = ucn.split(UCN_SEPARATOR)
+    if ucn_in_group[UCN_SEQUENCE_GROUP_INDEX] == UCN_UNKNOWN_GROUP and ucn_in_group[UCN_CASE_TYPE_INDEX] == UCN_CASE_TYPE:
+        ucn_in_group[UCN_SEQUENCE_GROUP_INDEX] = UCN_UNKNOWN_REPLACEMENT
+        reformatted_ucn = UCN_SEPARATOR.join(ucn_in_group)
+        return reformatted_ucn[:UCN_TRIM_LENGTH]
     return ucn
 
 def is_valid_file(filename, ftp):
@@ -158,7 +166,6 @@ def should_skip_directory(child_directory_name):
     if child_directory_name.startswith(ERROR_HTM_PREFIX):
         return True
     return False
-
 
 def move_to_completed(ftp, dir_name, completed_folder):
     """
