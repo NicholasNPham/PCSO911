@@ -13,6 +13,7 @@ from ftp_to_stac import run_stac_script
 COMPLETED_DIR_NAME = "__Completed"
 DELETE_DIR_PREFIX = "_Deleted"
 ERROR_HTM_PREFIX = "ERROR_HTM"
+HAS_HTM_KEY = "has_htm"
 FTP_TYPE_DIR = "dir"
 FTP_TYPE_FILE = "file"
 DELETE_DIR_PREFIX = '_DELETE '
@@ -310,11 +311,14 @@ if __name__ == "__main__":
                 is_match = run_stac_script(reformat_unknown_ucn(child_dir_data["ucn"]), local_file_paths, child_dir_name)
                 if is_match:
                     delete_temp_dir(temp_dir)
-                    renamed = rename_directory(ftp, child_dir_name, DELETE_DIR_PREFIX)
+                    if child_dir_data[HAS_HTM_KEY]:
+                        rename_directory(ftp, child_dir_name, ERROR_HTM_PREFIX)
+                        print(f"HTM file detected — renamed to '{ERROR_HTM_PREFIX}{child_dir_name}', skipping move to Completed.")
 
-                    if renamed:
-                        move_to_completed(ftp, renamed, COMPLETED_DIR_NAME)
-
+                    else:
+                        renamed = rename_directory(ftp, child_dir_name, DELETE_DIR_PREFIX)
+                        if renamed:
+                            move_to_completed(ftp, renamed, COMPLETED_DIR_NAME)
                 else:
                     delete_temp_dir(temp_dir)
 
