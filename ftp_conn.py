@@ -17,6 +17,11 @@ FTP_TYPE_FILE = "file"
 ERROR_HTM_PREFIX = '_ERROR_HTM '
 DELETE_DIR_PREFIX = '_DELETE '
 TEMP_DIR =  r"H:\911_TEMP_FILES"
+EMPTY_FILE_SIZE = 0
+CURRENT_WORKING_DIRECTORY = '.'
+FILE_METADATA_TYPE = "type"
+HTM_EXTENSION = ".htm"
+HTML_EXTENSION = ".html"
 
 # UCN CONSTANTS
 UCN_SEPARATOR = "-"
@@ -100,14 +105,14 @@ def is_valid_file(filename, ftp):
         True or False (Boolean)
     """
     try:
-        if ftp.size(filename) > 0:
+        if ftp.size(filename) > EMPTY_FILE_SIZE:
             return True
         else:
             print(f"File '{filename}' is 0 bytes. Skipping.")
             print("-------------------")
             return False
-    except ftplib.error_perm as e:
-        print(f"Failed to get size of file: {e}")
+    except ftplib.error_perm as NO_MEGABYTES_ERROR:
+        print(f"Failed to get size of file: {NO_MEGABYTES_ERROR}")
         return False
 
 def rename_directory(ftp, old_name, prefix):
@@ -127,8 +132,8 @@ def rename_directory(ftp, old_name, prefix):
         print(f"Renamed '{old_name}' to '{prefix + old_name}'")
         print("-------------------")
         return new_name
-    except ftplib.error_perm as e:
-        print(f"Failed to rename '{old_name}': {e}")
+    except ftplib.error_perm as FAILED_RENAME_ERROR:
+        print(f"Failed to rename '{old_name}': {FAILED_RENAME_ERROR}")
         print("-------------------")
         return None
 
@@ -142,9 +147,9 @@ def dir_contains_htm_file(ftp):
     Returns:
         bool: True if any .htm or .html file is found, False otherwise.
     """
-    for filename, attributes in ftp.mlsd("."):
-        if attributes.get("type") == FTP_TYPE_FILE:
-            if filename.lower().endswith((".htm", ".html")):
+    for filename, attributes in ftp.mlsd(CURRENT_WORKING_DIRECTORY):
+        if attributes.get(FILE_METADATA_TYPE) == FTP_TYPE_FILE:
+            if filename.lower().endswith((HTM_EXTENSION, HTML_EXTENSION)):
                 print(f"HTM/HTML file detected: '{filename}'")
                 return True
     return False
@@ -179,8 +184,8 @@ def move_to_completed(ftp, dir_name, completed_folder):
     try:
         ftp.rename(dir_name, f"{completed_folder}/{dir_name}")
         print(f"Moved '{dir_name}' to '{completed_folder}/{dir_name}'")
-    except ftplib.error_perm as e:
-        print(f"Failed to move '{dir_name}' : {e}")
+    except ftplib.error_perm as MOVE_ERROR:
+        print(f"Failed to move '{dir_name}' : {MOVE_ERROR}")
         print("-------------------")
 
 def download_files_to_temp(ftp, file_list):
