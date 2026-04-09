@@ -123,18 +123,20 @@ def rename_directory(ftp, old_name, prefix):
         old_name: current directory name
         prefix: prefix string to prepend to the directory name
     Returns:
-        new directory name or None if rename fails
+        str: New directory name.
+    Raises:
+        Exception: If the FTP rename operation fails.
     """
     try:
         new_name = prefix + old_name
-        ftp.rename(old_name, prefix + old_name)
-        print(f"Renamed '{old_name}' to '{prefix + old_name}'")
+        ftp.rename(old_name, new_name)
+        print(f"Renamed '{old_name}' to '{new_name}'")
         print("-------------------")
         return new_name
     except ftplib.error_perm as FAILED_RENAME_ERROR:
         print(f"Failed to rename '{old_name}': {FAILED_RENAME_ERROR}")
         print("-------------------")
-        return None
+        raise Exception(f"Failed to rename '{old_name}': {FAILED_RENAME_ERROR}")
 
 def dir_contains_htm_file(ftp):
     """
@@ -372,8 +374,7 @@ if __name__ == "__main__":
 
                     else:
                         renamed = rename_directory(ftp, child_dir_name, DELETE_DIR_PREFIX)
-                        if renamed:
-                            move_to_completed(ftp, renamed, COMPLETED_DIR_NAME)
+                        move_to_completed(ftp, renamed, COMPLETED_DIR_NAME)
                 else:
                     delete_temp_dir(temp_dir)
 
