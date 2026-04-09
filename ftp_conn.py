@@ -19,6 +19,7 @@ DELETE_DIR_PREFIX = '_DELETE '
 TEMP_DIR =  r"H:\911_TEMP_FILES"
 EMPTY_FILE_SIZE = 0
 CURRENT_WORKING_DIRECTORY = '.'
+RETURN_TO_PARENT_DIRECTORY = '..'
 FILE_METADATA_TYPE = "type"
 HTM_EXTENSION = ".htm"
 HTML_EXTENSION = ".html"
@@ -31,8 +32,6 @@ UCN_CASE_TYPE_INDEX = 2
 UCN_SEQUENCE_GROUP_INDEX = -2
 UCN_UNKNOWN_REPLACEMENT = "A000"
 UCN_TRIM_LENGTH = -3
-
-
 
 # FUNCTIONS
 def connect_to_ftp(username, password, ftp_link):
@@ -238,73 +237,117 @@ def extract_ucn_from_child_dir_name(child_dir_name):
     else:
         return None
 
-def child_dir_name_to_child_dir_filenames_gen(ftp):
+def list_processable_directories(ftp):
     """
-    Returns a dictionary mapping child directory names to a list of filenames
-    contained within each child directory.
+    Returns a list of directory names in the current FTP location
+    that are eligible for processing.
 
     Args:
         ftp: FTP connection object
 
     Returns:
-        tuple:
-            - ftp: FTP connection object
-            - child_directory_to_directory_contents_dict (dict): dictionary where
-                each key is a child directory name and each value is a list of
-                filenames inside that child directory.
-                Example: {
-                    "child_dir_1": {"ucn": UCN, "has_htm": False, "files": ["file1.mp3", "file2.wav"]},
-                    "child_dir_2": {"ucn": UCN, "has_htm": True,  "files": ["file3.mp3"]}
-                }
-        """
-    child_directory_to_directory_contents_dict = {}
+        list[str]: Directory names that are not skipped.
+    """
 
-    for child_directory_name, attribute in ftp.mlsd("."):
+    processable_directories = []
+
+    for child_directory_name, attribute in ftp.mlsd(CURRENT_WORKING_DIRECTORY):
         if should_skip_directory(child_directory_name):
             continue
-        elif attribute.get("type") == FTP_TYPE_DIR:
-            ftp.cwd(child_directory_name)
-            has_htm = dir_contains_htm_file(ftp)  # <-- checks for HTM
+        elif attribute.get(FILE_METADATA_TYPE) == FTP_TYPE_DIR:
+            processable_directories.append(child_directory_name)
 
-            child_directory_filename_list = []
-            for filename, attributes in ftp.mlsd("."):
-                if attributes.get("type") == FTP_TYPE_FILE and is_valid_file(filename, ftp):
-                    if not filename.lower().endswith((".htm", ".html")):
-                        child_directory_filename_list.append(filename)
+    return processable_directories
 
-            if child_directory_filename_list:
-                ucn = extract_ucn_from_child_dir_name(child_directory_name)
-                if ucn is None:
-                    print(f"Warning: No UCN found in directory name '{child_directory_name}'. Skipping.")
-                    ftp.cwd("..")
-                    continue
-                child_directory_to_directory_contents_dict[child_directory_name] = {
-                    "ucn": ucn,
-                    "has_htm": has_htm,
-                    "files": child_directory_filename_list
-                }
-            else:
-                print(f"Warning: No valid files found in '{child_directory_name}'. Skipping.")
-            ftp.cwd("..")
+def collect_directory_contents(ftp, dir_name):
+    """
+    Collects the contents of a single FTP directory.
+    CDs into the directory, checks for HTM files, collects valid
+    non-HTM filenames, then CDs back out.
 
-    # Uncommit this to check dictionary
+    Args:
+        ftp: FTP connection object
+        dir_name (str): Name of the directory to inspect.
+
+    Returns:
+        dict: {
+            "files": list[str] - valid non-HTM filenames,
+            "has_htm": bool - True if any .htm or .html file was found
+        }
+    """
+    ftp.cwd(dir_name)
+
+    has_htm = dir_contains_htm_file(ftp)
+
+    files = []
+    for filename, attributes in ftp.mlsd(CURRENT_WORKING_DIRECTORY):
+        if attributes.get(FILE_METADATA_TYPE) == FTP_TYPE_FILE and is_valid_file(filename, ftp):
+            if not filename.lower().endswith((HTM_EXTENSION, HTML_EXTENSION)):
+                files.append(filename)
+
+    ftp.cwd(RETURN_TO_PARENT_DIRECTORY)
+
+    return {"files": files, "has_htm": has_htm}
+
+def build_directory_manifest(ftp):
+    """
+    Builds a manifest of all processable directories and their contents.
+    Orchestrates list_processable_directories and collect_directory_contents,
+    extracts UCNs, and skips directories with no valid files or no UCN.
+
+    Args:
+        ftp: FTP connection object
+
+    Returns:
+        dict: {
+            dir_name (str): {
+                "ucn"     (str):       Universal Case Number extracted from dir name,
+                "has_htm" (bool):      True if directory contains an .htm or .html file,
+                "files"   (list[str]): Valid non-HTM filenames inside the directory
+            }
+        }
+    """
+
+    manifest = {}
+
+    processable_directories_list = list_processable_directories(ftp)
+
+    for child_directory in processable_directories_list:
+        contents = collect_directory_contents(ftp, child_directory)
+
+        if not contents["files"]:
+            print(f"Warning: No valid files found in '{child_directory}'. Skipping.")
+            continue
+
+        ucn = extract_ucn_from_child_dir_name(child_directory)
+        if ucn is None:
+            print(f"Warning: No UCN found in directory name '{child_directory}'. Skipping.")
+            continue
+
+        manifest[child_directory] = {
+            "ucn": ucn,
+            "has_htm": contents["has_htm"],  # pull from contents
+            "files": contents["files"],  # pull from contents
+        }
+
+    # Uncomment to debug manifest contents
     # print("-------------------------")
-    # print(child_directory_to_directory_contents_dict)
+    # print(manifest)
     # print("-------------------------")
 
-    return ftp, child_directory_to_directory_contents_dict
+    return manifest
 
 # MAIN LOOP SETUP
 if __name__ == "__main__":
     try:
-        connection = connect_to_ftp(USERNAME, PASSWORD, FTP_LINK)
-        ftp, child_directory_to_directory_contents_dict = child_dir_name_to_child_dir_filenames_gen(
-            change_directory_911_phone_calls(ABSOLUTE_PATH, connection))
+        ftp = connect_to_ftp(USERNAME, PASSWORD, FTP_LINK)
+        change_directory_911_phone_calls(ABSOLUTE_PATH, ftp)
+        manifest = build_directory_manifest(ftp)
 
         if os.path.exists(TEMP_DIR):
             delete_temp_dir(TEMP_DIR)
 # MAIN LOOP
-        for child_dir_name, child_dir_data in child_directory_to_directory_contents_dict.items():
+        for child_dir_name, child_dir_data in manifest.items():
             try:
                 print("V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V")
                 print(child_dir_name)
