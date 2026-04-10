@@ -93,7 +93,7 @@ def reformat_unknown_ucn(ucn):
         return reformatted_ucn[:UCN_TRIM_LENGTH]
     return ucn
 
-def is_valid_file(filename, ftp):
+def is_valid_filesize(filename, ftp):
     """
     checks to see if the file has a size thats bigger than 0 megabytes
 
@@ -283,7 +283,7 @@ def collect_directory_contents(ftp, dir_name):
 
     files = []
     for filename, attributes in ftp.mlsd(CURRENT_WORKING_DIRECTORY):
-        if attributes.get(FILE_METADATA_TYPE) == FTP_TYPE_FILE and is_valid_file(filename, ftp):
+        if attributes.get(FILE_METADATA_TYPE) == FTP_TYPE_FILE and is_valid_filesize(filename, ftp):
             if not filename.lower().endswith((HTM_EXTENSION, HTML_EXTENSION)):
                 files.append(filename)
 
