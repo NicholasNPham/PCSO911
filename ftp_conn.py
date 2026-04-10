@@ -376,6 +376,7 @@ if __name__ == "__main__":
                         move_to_completed(ftp, renamed, COMPLETED_DIR_NAME)
                 else:
                     delete_temp_dir(temp_dir)
+                    print(f"No match found for '{child_dir_name}'. Directory left on FTP.")
 
             except Exception as e:
                 print(f"Failed to process '{child_dir_name}': {e}")
@@ -383,7 +384,3 @@ if __name__ == "__main__":
 
     except Exception as e:
         print(f"Fatal error during setup: {e}")
-
-# To run this Script use this command to create a log.txt with date and time
-# python ftp_conn.py | tee "H:\911_RUN_REPORT_LOGS\log_$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss').txt"
-
