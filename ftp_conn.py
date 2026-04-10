@@ -23,6 +23,10 @@ RETURN_TO_PARENT_DIRECTORY = '..'
 FILE_METADATA_TYPE = "type"
 HTM_EXTENSION = ".htm"
 HTML_EXTENSION = ".html"
+MP3_EXTENSION = ".mp3"
+PDF_EXTENSION = ".pdf"
+ALLOWED_EXTENSIONS = {MP3_EXTENSION, PDF_EXTENSION}
+HTM_EXTENSIONS = {HTM_EXTENSION, HTML_EXTENSION}
 
 # UCN CONSTANTS
 UCN_SEPARATOR = "-"
@@ -138,23 +142,6 @@ def rename_directory(ftp, old_name, prefix):
         print("-------------------")
         raise Exception(f"Failed to rename '{old_name}': {FAILED_RENAME_ERROR}")
 
-def dir_contains_htm_file(ftp):
-    """
-    Scans the current FTP directory for any .htm or .html files.
-
-    Args:
-        ftp: FTP connection object (already cd'd into the child directory)
-
-    Returns:
-        bool: True if any .htm or .html file is found, False otherwise.
-    """
-    for filename, attributes in ftp.mlsd(CURRENT_WORKING_DIRECTORY):
-        if attributes.get(FILE_METADATA_TYPE) == FTP_TYPE_FILE:
-            if filename.lower().endswith((HTM_EXTENSION, HTML_EXTENSION)):
-                print(f"HTM/HTML file detected: '{filename}'")
-                return True
-    return False
-
 def should_skip_directory(child_directory_name):
     """
     Determines whether a child directory should be skipped during processing.
@@ -265,7 +252,7 @@ def collect_directory_contents(ftp, dir_name):
     """
     Collects the contents of a single FTP directory.
     CDs into the directory, checks for HTM files, collects valid
-    non-HTM filenames, then CDs back out.
+    .mp3 and .pdf filenames, then CDs back out.
 
     Args:
         ftp: FTP connection object
@@ -273,19 +260,31 @@ def collect_directory_contents(ftp, dir_name):
 
     Returns:
         dict: {
-            "files": list[str] - valid non-HTM filenames,
+            "files": list[str] - valid .mp3 and .pdf filenames,
             "has_htm": bool - True if any .htm or .html file was found
         }
     """
     ftp.cwd(dir_name)
 
-    has_htm = dir_contains_htm_file(ftp)
-
+    has_htm = False
     files = []
+
     for filename, attributes in ftp.mlsd(CURRENT_WORKING_DIRECTORY):
-        if attributes.get(FILE_METADATA_TYPE) == FTP_TYPE_FILE and is_valid_filesize(filename, ftp):
-            if not filename.lower().endswith((HTM_EXTENSION, HTML_EXTENSION)):
+        if attributes.get(FILE_METADATA_TYPE) != FTP_TYPE_FILE:
+            continue
+
+        ext = os.path.splitext(filename.lower())[1]
+
+        if ext in HTM_EXTENSIONS:
+            print(f"HTM/HTML file detected: '{filename}'")
+            has_htm = True
+
+        elif ext in ALLOWED_EXTENSIONS:
+            if is_valid_filesize(filename, ftp):
                 files.append(filename)
+
+        else:
+            print(f"Unexpected file extension skipped: '{filename}' in '{dir_name}'")
 
     ftp.cwd(RETURN_TO_PARENT_DIRECTORY)
 
