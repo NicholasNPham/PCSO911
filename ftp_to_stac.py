@@ -44,6 +44,7 @@ SELECT_BUTTON_XPATH = "//span[text()='Select']/parent::button"
 ADD_IMAGE_UPLOAD_DROPBOX_CSS_SELECTOR = "input[id^='cipFileUpload_TelerikUpload']"
 CASE_NAME_FROM_STAC_UCN_SEARCH = "td[data-original-column-name='Def_Name'] span.k-button-text"
 
+# FUNCTIONS
 def names_match(stac_name, child_dir_name):
     """
     Check whether two names are a fuzzy match by comparing their word tokens.
@@ -69,7 +70,6 @@ def names_match(stac_name, child_dir_name):
 
     return stac_tokens.issubset(dir_tokens) or dir_tokens.issubset(stac_tokens)
 
-# FUNCTIONS
 def setup_browser():
     """Open Chrome, log in to STAC website, and wait for the sidebar.
 
