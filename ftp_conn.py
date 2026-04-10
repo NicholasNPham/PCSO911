@@ -25,8 +25,11 @@ HTM_EXTENSION = ".htm"
 HTML_EXTENSION = ".html"
 MP3_EXTENSION = ".mp3"
 PDF_EXTENSION = ".pdf"
+FTP_PATH_SEPARATOR = "/"
+FTP_RETR_COMMAND = "RETR"
 ALLOWED_EXTENSIONS = {MP3_EXTENSION, PDF_EXTENSION}
 HTM_EXTENSIONS = {HTM_EXTENSION, HTML_EXTENSION}
+
 
 # UCN CONSTANTS
 UCN_SEPARATOR = "-"
@@ -170,8 +173,8 @@ def move_to_completed(ftp, dir_name, completed_folder):
         completed_folder: name of the completed folder to move into
     """
     try:
-        ftp.rename(dir_name, f"{completed_folder}/{dir_name}")
-        print(f"Moved '{dir_name}' to '{completed_folder}/{dir_name}'")
+        ftp.rename(dir_name, f"{completed_folder}{FTP_PATH_SEPARATOR}{dir_name}")
+        print(f"Moved '{dir_name}' to '{completed_folder}{FTP_PATH_SEPARATOR}{dir_name}'")
     except ftplib.error_perm as MOVE_ERROR:
         print(f"Failed to move '{dir_name}' : {MOVE_ERROR}")
         print("-------------------")
@@ -194,7 +197,7 @@ def download_files_to_temp(ftp, file_list):
     for filename in file_list:
         local_path = os.path.join(TEMP_DIR, filename)
         with open(local_path, "wb") as file:
-            ftp.retrbinary(f"RETR {filename}", file.write)
+            ftp.retrbinary(f"{FTP_RETR_COMMAND} {filename}", file.write)
         local_file_path.append(local_path)
         print(f"Downloaded {filename} to {local_path}")
     print("-------------------")
@@ -357,7 +360,7 @@ if __name__ == "__main__":
 
                 ftp.cwd(child_dir_name)
                 temp_dir, local_file_paths = download_files_to_temp(ftp, child_dir_data["files"])
-                ftp.cwd("..")
+                ftp.cwd(RETURN_TO_PARENT_DIRECTORY)
 
                 ucn = child_dir_data["ucn"]
                 reformatted = reformat_unknown_ucn(ucn)
