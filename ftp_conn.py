@@ -29,6 +29,7 @@ FTP_PATH_SEPARATOR = "/"
 FTP_RETR_COMMAND = "RETR"
 ALLOWED_EXTENSIONS = {MP3_EXTENSION, PDF_EXTENSION}
 HTM_EXTENSIONS = {HTM_EXTENSION, HTML_EXTENSION}
+CASE_COUNT_RUN = 0
 
 
 # UCN CONSTANTS
@@ -377,6 +378,9 @@ if __name__ == "__main__":
                     else:
                         renamed = rename_directory(ftp, child_dir_name, DELETE_DIR_PREFIX)
                         move_to_completed(ftp, renamed, COMPLETED_DIR_NAME)
+                        CASE_COUNT_RUN += 1
+                        print(f"Case count: {CASE_COUNT_RUN}")
+
                 else:
                     delete_temp_dir(temp_dir)
                     print(f"No match found for '{child_dir_name}'. Directory left on FTP.")
