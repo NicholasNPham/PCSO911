@@ -4,6 +4,7 @@ from ftplib import FTP
 import re
 import os
 import shutil
+import getpass
 
 # Local Imports
 from key import USERNAME, PASSWORD, FTP_LINK, ABSOLUTE_PATH, UNIVERSAL_CASE_NUMBER_PATTERN
@@ -345,6 +346,14 @@ def build_directory_manifest(ftp):
 # MAIN LOOP SETUP
 if __name__ == "__main__":
     try:
+
+        # COMMENT THIS OUT DEPENDING ON SITUATION
+
+        # THIS ALLOWS USER TO ENTER IN PASSWORD HIDDEN IN CMD/POWERSHELL ONLY
+        # USERNAME = input("FTP Username: ")
+        # PASSWORD = getpass.getpass("FTP Password: ")
+
+        # IF NOT RUNNING THE IMPORT GETPASS IMPORT THE USERNAME AND PASSWORD.
         ftp = connect_to_ftp(USERNAME, PASSWORD, FTP_LINK)
         change_directory_911_phone_calls(ABSOLUTE_PATH, ftp)
         manifest = build_directory_manifest(ftp)
