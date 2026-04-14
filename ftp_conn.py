@@ -11,6 +11,7 @@ import datetime
 # Local Imports
 from key import USERNAME, PASSWORD, FTP_LINK, ABSOLUTE_PATH, UNIVERSAL_CASE_NUMBER_PATTERN
 from ftp_to_stac import run_stac_script
+from ftp_outlook_error import send_error_email
 
 # CONSTANTS
 COMPLETED_DIR_NAME = "__Completed"
@@ -401,12 +402,13 @@ if __name__ == "__main__":
                     print(f"Original UCN: {ucn}")
                     print(f"Reformatted UCN: {reformatted}")
 
-                    is_match = run_stac_script(reformat_unknown_ucn(child_dir_data["ucn"]), local_file_paths, child_dir_name)
+                    is_match = run_stac_script(reformatted, local_file_paths, child_dir_name)
                     if is_match:
                         delete_temp_dir(temp_dir)
                         if child_dir_data[HAS_HTM_KEY]:
                             rename_directory(ftp, child_dir_name, ERROR_HTM_PREFIX)
-                            print(f"HTM file detected — renamed to '{ERROR_HTM_PREFIX}{child_dir_name}', skipping move to Completed.")
+                            htm_file_error = f"HTM file detected — renamed to '{ERROR_HTM_PREFIX}{child_dir_name}', skipping move to Completed."
+                            send_error_email(htm_file_error)
 
                         else:
                             renamed = rename_directory(ftp, child_dir_name, DELETE_DIR_PREFIX)
@@ -416,11 +418,16 @@ if __name__ == "__main__":
 
                     else:
                         delete_temp_dir(temp_dir)
-                        print(f"No match found for '{child_dir_name}'. Directory left on FTP.")
+                        no_matching_stac_ucn_error = f"No match found for '{child_dir_name}'. Directory left on FTP."
+                        send_error_email(no_matching_stac_ucn_error)
 
                 except Exception as e:
-                    print(f"Failed to process '{child_dir_name}': {e}")
+                    failed_error = f"Failed to process '{child_dir_name}': {e}"
+                    send_error_email(failed_error)
                     continue  # move on to the next dir instead of crashing the whole loop.
 
+
     except Exception as e:
-        print(f"Fatal error during setup: {e}")
+        fatal_error = f"Fatal error during setup: {e}"
+        print(fatal_error)
+        send_error_email(fatal_error)
