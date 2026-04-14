@@ -64,3 +64,5 @@ def send_error_email(error_in_body):
         print(f"Failed to send error email: {send_error_email_error}")
         print(f"Original error: {error_in_body}")
 
+if __name__ == "__main__":
+    send_error_email("TEST: ftp_outlook_error.py is working correctly.")
