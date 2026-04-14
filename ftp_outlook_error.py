@@ -25,6 +25,17 @@ def connect_to_outlook():
     return outlook_app, namespace
 
 def create_mailbox_item(outlook_item, subject, error_in_body):
+    """
+    Creates the mailbox item with the subject and the error message as the body.
+
+    Args:
+        outlook_item: Outlook application object
+        subject (str): string that lists what script it came from.
+        error_in_body (str): the body of the email.
+
+    Returns:
+        win32com.client.CDispatch: mail item object ready to be sent.
+    """
     mail_item = outlook_item.CreateItem(OUTLOOK_MAIL_ITEM)
     mail_item.Subject = subject
     mail_item.BodyFormat = OUTLOOK_BODY_FORMAT
@@ -33,14 +44,14 @@ def create_mailbox_item(outlook_item, subject, error_in_body):
     return mail_item
 
 
-def send_error_email(outlook_app, error_in_body):
+def send_error_email(error_in_body):
     """
     Creates and sends an error notification email via Outlook.
 
     Args:
-        outlook_app: Outlook application object.
         error_in_body (str): Error message to include in the email body.
     """
+    outlook_app, namespace = connect_to_outlook()
     mail_item = create_mailbox_item(outlook_app, MAIL_ITEM_SUBJECT, error_in_body)
     mail_item.To = EMAIL_TO
     mail_item.CC = EMAIL_CC
