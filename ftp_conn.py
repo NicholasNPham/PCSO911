@@ -5,6 +5,8 @@ import re
 import os
 import shutil
 import getpass
+import sys
+import datetime
 
 # Local Imports
 from key import USERNAME, PASSWORD, FTP_LINK, ABSOLUTE_PATH, UNIVERSAL_CASE_NUMBER_PATTERN
@@ -41,6 +43,20 @@ UCN_CASE_TYPE_INDEX = 2
 UCN_SEQUENCE_GROUP_INDEX = -2
 UCN_UNKNOWN_REPLACEMENT = "A000"
 UCN_TRIM_LENGTH = -3
+
+# CLASS
+class Tee:
+    def __init__(self, file):
+        self.file = file # the .txt file you open
+        self.terminal = sys.stdout # save the REAL console before replacing it
+
+    def write(self, message):
+        self.terminal.write(message) # sends to real console
+        self.file.write(message) # sends to .txt file
+
+    def flush(self):
+        self.terminal.flush()
+        self.file.flush()
 
 # FUNCTIONS
 def connect_to_ftp(username, password, ftp_link):
@@ -360,43 +376,51 @@ if __name__ == "__main__":
 
         if os.path.exists(TEMP_DIR):
             delete_temp_dir(TEMP_DIR)
-# MAIN LOOP
-        for child_dir_name, child_dir_data in manifest.items():
-            try:
-                print("V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V")
-                print(child_dir_name)
-                print(f"number of files: {len(child_dir_data['files'])}")
-                print("-vvvvvvvvvvvvvvvvvvvvvvv-")
 
-                ftp.cwd(child_dir_name)
-                temp_dir, local_file_paths = download_files_to_temp(ftp, child_dir_data["files"])
-                ftp.cwd(RETURN_TO_PARENT_DIRECTORY)
+        case_count = len(manifest)
+        date_str = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        log_path = rf"H:\911_RUN_REPORT_LOGS\log_{date_str}_{case_count}_cases.txt"
 
-                ucn = child_dir_data["ucn"]
-                reformatted = reformat_unknown_ucn(ucn)
-                print(f"Original UCN: {ucn}")
-                print(f"Reformatted UCN: {reformatted}")
+        with open(log_path, "w") as log_file:
+            sys.stdout = Tee(log_file)
 
-                is_match = run_stac_script(reformat_unknown_ucn(child_dir_data["ucn"]), local_file_paths, child_dir_name)
-                if is_match:
-                    delete_temp_dir(temp_dir)
-                    if child_dir_data[HAS_HTM_KEY]:
-                        rename_directory(ftp, child_dir_name, ERROR_HTM_PREFIX)
-                        print(f"HTM file detected — renamed to '{ERROR_HTM_PREFIX}{child_dir_name}', skipping move to Completed.")
+            # MAIN LOOP
+            for child_dir_name, child_dir_data in manifest.items():
+                try:
+                    print("V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V^V")
+                    print(child_dir_name)
+                    print(f"number of files: {len(child_dir_data['files'])}")
+                    print("-vvvvvvvvvvvvvvvvvvvvvvv-")
+
+                    ftp.cwd(child_dir_name)
+                    temp_dir, local_file_paths = download_files_to_temp(ftp, child_dir_data["files"])
+                    ftp.cwd(RETURN_TO_PARENT_DIRECTORY)
+
+                    ucn = child_dir_data["ucn"]
+                    reformatted = reformat_unknown_ucn(ucn)
+                    print(f"Original UCN: {ucn}")
+                    print(f"Reformatted UCN: {reformatted}")
+
+                    is_match = run_stac_script(reformat_unknown_ucn(child_dir_data["ucn"]), local_file_paths, child_dir_name)
+                    if is_match:
+                        delete_temp_dir(temp_dir)
+                        if child_dir_data[HAS_HTM_KEY]:
+                            rename_directory(ftp, child_dir_name, ERROR_HTM_PREFIX)
+                            print(f"HTM file detected — renamed to '{ERROR_HTM_PREFIX}{child_dir_name}', skipping move to Completed.")
+
+                        else:
+                            renamed = rename_directory(ftp, child_dir_name, DELETE_DIR_PREFIX)
+                            move_to_completed(ftp, renamed, COMPLETED_DIR_NAME)
+                            CASE_COUNT_RUN += 1
+                            print(f"Case count: {CASE_COUNT_RUN}")
 
                     else:
-                        renamed = rename_directory(ftp, child_dir_name, DELETE_DIR_PREFIX)
-                        move_to_completed(ftp, renamed, COMPLETED_DIR_NAME)
-                        CASE_COUNT_RUN += 1
-                        print(f"Case count: {CASE_COUNT_RUN}")
+                        delete_temp_dir(temp_dir)
+                        print(f"No match found for '{child_dir_name}'. Directory left on FTP.")
 
-                else:
-                    delete_temp_dir(temp_dir)
-                    print(f"No match found for '{child_dir_name}'. Directory left on FTP.")
-
-            except Exception as e:
-                print(f"Failed to process '{child_dir_name}': {e}")
-                continue  # move on to the next dir instead of crashing the whole loop.
+                except Exception as e:
+                    print(f"Failed to process '{child_dir_name}': {e}")
+                    continue  # move on to the next dir instead of crashing the whole loop.
 
     except Exception as e:
         print(f"Fatal error during setup: {e}")
