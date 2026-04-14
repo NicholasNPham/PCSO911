@@ -408,6 +408,7 @@ if __name__ == "__main__":
                         if child_dir_data[HAS_HTM_KEY]:
                             rename_directory(ftp, child_dir_name, ERROR_HTM_PREFIX)
                             htm_file_error = f"HTM file detected — renamed to '{ERROR_HTM_PREFIX}{child_dir_name}', skipping move to Completed."
+                            print(htm_file_error)
                             send_error_email(htm_file_error)
 
                         else:
@@ -419,10 +420,12 @@ if __name__ == "__main__":
                     else:
                         delete_temp_dir(temp_dir)
                         no_matching_stac_ucn_error = f"No match found for '{child_dir_name}'. Directory left on FTP."
+                        print(no_matching_stac_ucn_error)
                         send_error_email(no_matching_stac_ucn_error)
 
                 except Exception as e:
                     failed_error = f"Failed to process '{child_dir_name}': {e}"
+                    print(failed_error)
                     send_error_email(failed_error)
                     continue  # move on to the next dir instead of crashing the whole loop.
 
