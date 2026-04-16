@@ -20,6 +20,7 @@ FTP_TYPE_DIR = "dir"
 FTP_TYPE_FILE = "file"
 ERROR_HTM_PREFIX = '_ERROR_HTM '
 DELETE_DIR_PREFIX = '_DELETE '
+SCRIPT_RAN_SUFFIX = ' _SCRIPT'
 TEMP_DIR =  r"H:\911_TEMP_FILES"
 EMPTY_FILE_SIZE = 0
 CURRENT_WORKING_DIRECTORY = '.'
@@ -141,7 +142,7 @@ def is_valid_filesize(filename, ftp):
         print(f"Failed to get size of file: {NO_MEGABYTES_ERROR}")
         return False
 
-def rename_directory(ftp, old_name, prefix):
+def rename_directory(ftp, old_name, prefix, suffix):
     """
     Renames a directory by adding a prefix to its current name.
 
@@ -155,7 +156,7 @@ def rename_directory(ftp, old_name, prefix):
         Exception: If the FTP rename operation fails.
     """
     try:
-        new_name = prefix + old_name
+        new_name = prefix + old_name + suffix
         ftp.rename(old_name, new_name)
         print(f"Renamed '{old_name}' to '{new_name}'")
         print("-------------------")
@@ -409,12 +410,12 @@ if __name__ == "__main__":
                         if is_match:
                             delete_temp_dir(temp_dir)
                             if child_dir_data[HAS_HTM_KEY]:
-                                rename_directory(ftp, child_dir_name, ERROR_HTM_PREFIX)
-                                htm_file_error = f"HTM file detected — renamed to '{ERROR_HTM_PREFIX}{child_dir_name}', skipping move to Completed."
+                                renamed = rename_directory(ftp, child_dir_name, ERROR_HTM_PREFIX, SCRIPT_RAN_SUFFIX)
+                                htm_file_error = f"HTM file detected — renamed to '{renamed}', skipping move to Completed."
                                 print(htm_file_error)
                                 send_error_email(htm_file_error)
                             else:
-                                renamed = rename_directory(ftp, child_dir_name, DELETE_DIR_PREFIX)
+                                renamed = rename_directory(ftp, child_dir_name, DELETE_DIR_PREFIX, SCRIPT_RAN_SUFFIX)
                                 move_to_completed(ftp, renamed, COMPLETED_DIR_NAME)
                                 CASE_COUNT_RUN += 1
                                 print(f"Case count: {CASE_COUNT_RUN}")
