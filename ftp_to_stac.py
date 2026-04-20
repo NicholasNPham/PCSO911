@@ -23,6 +23,7 @@ from key import *
 CHROME_PATH = 'chromedriver-win64/chromedriver.exe'
 PAUSE_BETWEEN_ACTIONS_SECONDS = 1
 WEBDRIVER_WAIT_TIMEOUT_SECONDS = 5
+FILE_UPLOAD_WAIT_TIMEOUT_SECONDS = 60
 EXCLUDED_TOKENS = {"AM", "SVP", "AME", "SO", "AMSP", "JLA", "PJLA", "SP", "ALERT", "BKGRDALERT", "CP", "DO", "NOT", "USE", "GANG", "NCP", "NO", "CC", "OSCP", "SPCALERT", "TTP", "VFOSC", "HA"}
 
 # HTML
@@ -44,6 +45,7 @@ SELECT_BUTTON_XPATH = "//span[text()='Select']/parent::button"
 ADD_IMAGE_UPLOAD_DROPBOX_CSS_SELECTOR = "input[id^='cipFileUpload_TelerikUpload']"
 FILE_UPLOAD_SUCCESS_XPATH = "//span[contains(@class,'k-file-validation-message') and text()='File(s) uploaded successfully.']"
 SAVE_IMAGE_BUTTON = "SaveImage"
+IMAGE_SAVED_NOTIFICATION_XPATH = "//div[contains(@class,'c-notification-success')]"
 CASE_NAME_FROM_STAC_UCN_SEARCH = "td[data-original-column-name='Def_Name'] span.k-button-text"
 
 # FUNCTIONS
@@ -208,11 +210,16 @@ def add_image(driver, wait, file_list):
     file_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ADD_IMAGE_UPLOAD_DROPBOX_CSS_SELECTOR)))
     driver.execute_script("arguments[0].removeAttribute('class')", file_input)  # unhide the input
 
+    upload_wait = WebDriverWait(driver, FILE_UPLOAD_WAIT_TIMEOUT_SECONDS)
+
     # Uploading Files to the DropBox
     file_input.send_keys("\n".join(file_list))
     wait_for_all_uploads(wait, len(file_list))
 
-    wait.until(EC.element_to_be_clickable((By.ID, SAVE_IMAGE_BUTTON))).click()
+    upload_wait.until(EC.element_to_be_clickable((By.ID, SAVE_IMAGE_BUTTON))).click()
+    upload_wait.until(EC.presence_of_element_located((By.XPATH, IMAGE_SAVED_NOTIFICATION_XPATH)))
+    upload_wait.until(EC.invisibility_of_element_located((By.XPATH, IMAGE_SAVED_NOTIFICATION_XPATH)))
+    print("Image saved successfully.")
 
     return (driver, wait)
 
