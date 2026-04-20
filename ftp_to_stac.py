@@ -42,6 +42,8 @@ IMAGE_SUB_TYPE_FIND_BUTTON_ID = "image_sub_typeFindButton"
 IMAGE_SUB_TYPE_ROW_XPATH = "//span[text()='911AUDIO']"
 SELECT_BUTTON_XPATH = "//span[text()='Select']/parent::button"
 ADD_IMAGE_UPLOAD_DROPBOX_CSS_SELECTOR = "input[id^='cipFileUpload_TelerikUpload']"
+FILE_UPLOAD_SUCCESS_XPATH = "//span[contains(@class,'k-file-validation-message') and text()='File(s) uploaded successfully.']"
+SAVE_IMAGE_BUTTON = "SaveImage"
 CASE_NAME_FROM_STAC_UCN_SEARCH = "td[data-original-column-name='Def_Name'] span.k-button-text"
 
 # FUNCTIONS
@@ -150,6 +152,21 @@ def search_by_ucn(driver, wait, ucn_value, child_dir_name):
 
     return (driver, wait), is_match
 
+def wait_for_all_uploads(wait, expected_count):
+    """
+    Waits until the number of successfully uploaded files matches expected count.
+
+    Args:
+        wait (WebDriverWait): WebDriverWait object.
+        expected_count (int): Number of files expected to finish uploading.
+
+    Returns:
+        bool: True when all files are confirmed uploaded.
+    """
+    wait.until(lambda d: len(d.find_elements(By.XPATH, FILE_UPLOAD_SUCCESS_XPATH))  >= expected_count)
+    print(f"{expected_count}/{expected_count} files uploaded successfully.")
+    return True
+
 def add_image(driver, wait, file_list):
     """Navigate to the Images tab and trigger the file upload dialog.
 
@@ -193,9 +210,9 @@ def add_image(driver, wait, file_list):
 
     # Uploading Files to the DropBox
     file_input.send_keys("\n".join(file_list))
-    time.sleep(PAUSE_BETWEEN_ACTIONS_SECONDS)
+    wait_for_all_uploads(wait, len(file_list))
 
-    wait.until(EC.element_to_be_clickable((By.ID, "SaveImage"))).click()
+    wait.until(EC.element_to_be_clickable((By.ID, SAVE_IMAGE_BUTTON))).click()
 
     return (driver, wait)
 
