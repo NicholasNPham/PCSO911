@@ -20,7 +20,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from key import *
 
 # CONSTANTS
-CHROME_PATH = 'chromedriver-win64/chromedriver.exe'
 PAUSE_BETWEEN_ACTIONS_SECONDS = 1
 WEBDRIVER_WAIT_TIMEOUT_SECONDS = 5
 FILE_UPLOAD_WAIT_TIMEOUT_SECONDS = 60
