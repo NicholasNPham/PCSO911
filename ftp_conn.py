@@ -468,5 +468,5 @@ if __name__ == "__main__":
             run_psco911_script()
             script_last_ran_date = datetime.date.today()
         else:
-            print("testing time")
+            print(datetime.datetime.now().strftime("%H:%M"))
             time.sleep(SLEEP_INTERVAL_SECONDS)
