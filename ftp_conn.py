@@ -7,6 +7,7 @@ import shutil
 import getpass
 import sys
 import datetime
+import time
 
 # Local Imports
 from key import USERNAME, PASSWORD, FTP_LINK, ABSOLUTE_PATH, UNIVERSAL_CASE_NUMBER_PATTERN, UNC_PATH_TO_H_DRIVE
@@ -35,8 +36,12 @@ FTP_PATH_SEPARATOR = "/"
 FTP_RETR_COMMAND = "RETR"
 ALLOWED_EXTENSIONS = {MP3_EXTENSION, PDF_EXTENSION, WAV_EXTENSION}
 HTM_EXTENSIONS = {HTM_EXTENSION, HTML_EXTENSION}
-CASE_COUNT_RUN = 0
 
+# SCHEDULED RUN CONSTANTS
+SCHEDULE_HOUR = 15 # 3:00 PM
+SCHEDULE_MINUTE = 0
+SCHEDULE_DAYS = {0, 1, 2, 3, 4} # MONDAY-FRIDAY
+SLEEP_INTERVAL_SECONDS = 60
 
 # UCN CONSTANTS
 UCN_SEPARATOR = "-"
@@ -362,8 +367,24 @@ def build_directory_manifest(ftp):
 
     return manifest
 
+def is_scheduled_run_time():
+    """
+    Checks whether the current day and time match the scheduled run window.
+
+    Returns:
+        bool: True if the current weekday, hour, and minute match the
+              scheduled constants, False otherwise.
+    """
+    now = datetime.datetime.now()
+    return (
+        now.weekday() in SCHEDULE_DAYS
+        and now.hour == SCHEDULE_HOUR
+        and now.minute == SCHEDULE_MINUTE
+    )
+
 # MAIN LOOP SETUP
-if __name__ == "__main__":
+def run_psco911_script():
+    case_count_run = 0
     try:
 
         # COMMENT THIS OUT DEPENDING ON SITUATION
@@ -417,8 +438,8 @@ if __name__ == "__main__":
                             else:
                                 renamed = rename_directory(ftp, child_dir_name, DELETE_DIR_PREFIX, SCRIPT_RAN_SUFFIX)
                                 move_to_completed(ftp, renamed, COMPLETED_DIR_NAME)
-                                CASE_COUNT_RUN += 1
-                                print(f"Case count: {CASE_COUNT_RUN}")
+                                case_count_run += 1
+                                print(f"Case count: {case_count_run}")
                         else:
                             delete_temp_dir(temp_dir)
                             no_matching_stac_ucn_error = f"No match found for '{child_dir_name}'. Directory left on FTP."
@@ -438,3 +459,14 @@ if __name__ == "__main__":
         fatal_error = f"Fatal error during setup: {e}"
         print(fatal_error)
         send_error_email(fatal_error)
+
+if __name__ == "__main__":
+
+    script_last_ran_date = None
+    while True:
+        if is_scheduled_run_time() and script_last_ran_date != datetime.date.today():
+            run_psco911_script()
+            script_last_ran_date = datetime.date.today()
+        else:
+            print("testing time")
+            time.sleep(SLEEP_INTERVAL_SECONDS)
