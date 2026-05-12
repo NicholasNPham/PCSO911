@@ -15,6 +15,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import Select
 
 # Local Imports
 from key import *
@@ -26,6 +27,8 @@ FILE_UPLOAD_WAIT_TIMEOUT_SECONDS = 60
 EXCLUDED_TOKENS = {"AM", "SVP", "AME", "SO", "AMSP", "JLA", "PJLA", "SP", "ALERT", "BKGRDALERT", "CP", "DO", "NOT", "USE", "GANG", "NCP", "NO", "CC", "OSCP", "SPCALERT", "TTP", "VFOSC", "HA"}
 
 # HTML
+LOGIN_DROPDOWN_MENU_ID = 'LoginProvider'
+USERNAME_AND_PASSWORD_DROPDOWN_MENU_VALUE = '0'
 USERNAME_FIELD_ID = 'Username'
 PASSWORD_FIELD_ID = 'Password'
 SUBMIT_LOGIN_BUTTON_ID = 'submitLogin'
@@ -90,6 +93,9 @@ def setup_browser():
     driver.get(WEBSITE) # opens to the website.
     driver.maximize_window() # maximizes the web driver
     # LOGIN PATH
+    dropdown_element = wait.until(EC.presence_of_element_located((By.ID, LOGIN_DROPDOWN_MENU_ID)))
+    dropdown = Select(dropdown_element)
+    dropdown.select_by_value(USERNAME_AND_PASSWORD_DROPDOWN_MENU_VALUE)
     wait.until(EC.element_to_be_clickable((By.ID, USERNAME_FIELD_ID))).send_keys(STAC3_USERNAME) # finds username field enters username
     wait.until(EC.element_to_be_clickable((By.ID, PASSWORD_FIELD_ID))).send_keys(STAC3_PASSWORD) # finds password field and enters password
     driver.find_element(By.ID, SUBMIT_LOGIN_BUTTON_ID).click() # clicks submit to log in.
@@ -241,4 +247,5 @@ def run_stac_script(universal_case_number, file_list_from_dict, child_dir_name):
     return is_match
 
 # LOOP TESTING
-# run_stac_script(test_case)
+# driver, wait = setup_browser()
+# run_stac_script("24-00-CJ-0000-000-000", ["C:\\path\\to\\file.mp3"], "LAST FIRST 24-00-CJ-0000-000-000")
