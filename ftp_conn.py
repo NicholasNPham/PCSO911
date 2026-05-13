@@ -10,7 +10,7 @@ import time
 
 # Local Imports
 from key import USERNAME, PASSWORD, FTP_LINK, ABSOLUTE_PATH, UNIVERSAL_CASE_NUMBER_PATTERN, UNC_PATH_TO_H_DRIVE
-from ftp_to_stac import run_stac_script, teardown_browser
+from ftp_to_stac import run_stac_script
 from ftp_outlook_error import send_error_email
 
 # CONSTANTS
@@ -66,7 +66,7 @@ class Tee:
         self.file.flush()
 
 # FUNCTIONS
-def connect_to_ftp(username, password, ftp_link):
+def connect_to_ftp(username: str, password: str, ftp_link: str) -> FTP:
     """
     Connect to FTP server.
 
@@ -88,7 +88,7 @@ def connect_to_ftp(username, password, ftp_link):
         ftp.quit()
         raise ConnectionError(f"Login Failed: {LOGIN_ERROR}")
 
-def change_directory_911_phone_calls(absolute_path, ftp):
+def change_directory_911_phone_calls(absolute_path: str, ftp: FTP) -> FTP:
     """
     changing directory to PSCO911
 
@@ -106,7 +106,7 @@ def change_directory_911_phone_calls(absolute_path, ftp):
         ftp.quit()
         raise ConnectionError(f"Failed to Change Directory: {CHANGE_DIRECTORY_ERROR}")
 
-def reformat_unknown_ucn(ucn):
+def reformat_unknown_ucn(ucn: str) -> str:
     """
     Reformats a UCN where the second-to-last group is '0000' by replacing
     the first zero with 'A', indicating an unknown case number.
@@ -125,9 +125,9 @@ def reformat_unknown_ucn(ucn):
         return reformatted_ucn[:UCN_TRIM_LENGTH]
     return ucn
 
-def is_valid_filesize(filename, ftp):
+def is_valid_file_size(filename: str, ftp: FTP) -> bool:
     """
-    checks to see if the file has a size thats bigger than 0 megabytes
+    checks to see if the file has a size that's bigger than 0 megabytes
 
     Args:
         filename: filename to check
@@ -146,7 +146,7 @@ def is_valid_filesize(filename, ftp):
         print(f"Failed to get size of file: {NO_MEGABYTES_ERROR}")
         return False
 
-def rename_directory(ftp, old_name, prefix, suffix):
+def rename_directory(ftp: FTP, old_name: str, prefix: str, suffix: str) -> str:
     """
     Renames a directory by adding a prefix to its current name.
 
@@ -154,6 +154,7 @@ def rename_directory(ftp, old_name, prefix, suffix):
         ftp: FTP connection object
         old_name: current directory name
         prefix: prefix string to prepend to the directory name
+        suffix: suffix string to append to the directory name
     Returns:
         str: New directory name.
     Raises:
@@ -170,7 +171,7 @@ def rename_directory(ftp, old_name, prefix, suffix):
         print("-------------------")
         raise Exception(f"Failed to rename '{old_name}': {FAILED_RENAME_ERROR}")
 
-def should_skip_directory(child_directory_name):
+def should_skip_directory(child_directory_name: str) -> bool:
     """
     Determines whether a child directory should be skipped during processing.
 
@@ -188,7 +189,7 @@ def should_skip_directory(child_directory_name):
         return True
     return False
 
-def move_to_completed(ftp, dir_name, completed_folder):
+def move_to_completed(ftp: FTP, dir_name: str, completed_folder: str) -> None:
     """
     Moves a directory into the completed folder.
 
@@ -204,7 +205,7 @@ def move_to_completed(ftp, dir_name, completed_folder):
         print(f"Failed to move '{dir_name}' : {MOVE_ERROR}")
         print("-------------------")
 
-def download_files_to_temp(ftp, file_list):
+def download_files_to_temp(ftp: FTP, file_list: list) -> tuple:
     """
         Downloads a list of files to a temp folder.
 
@@ -229,14 +230,14 @@ def download_files_to_temp(ftp, file_list):
 
     return TEMP_DIR, local_file_path
 
-def delete_temp_dir(temp_dir):
+def delete_temp_dir(temp_dir: str) -> None:
     """Deletes the temp directory and all its contents."""
     if os.path.exists(temp_dir):
         shutil.rmtree(temp_dir)
         print(f"Deleted temp directory: {temp_dir}")
         print("-------------------")
 
-def extract_ucn_from_child_dir_name(child_dir_name):
+def extract_ucn_from_child_dir_name(child_dir_name: str) -> str | None:
     """
     Extracts a Universal Case Number (UCN) from a child directory name.
 
@@ -254,7 +255,7 @@ def extract_ucn_from_child_dir_name(child_dir_name):
     else:
         return None
 
-def list_processable_directories(ftp):
+def list_processable_directories(ftp: FTP) -> list:
     """
     Returns a list of directory names in the current FTP location
     that are eligible for processing.
@@ -276,7 +277,7 @@ def list_processable_directories(ftp):
 
     return processable_directories
 
-def collect_directory_contents(ftp, dir_name):
+def collect_directory_contents(ftp: FTP, dir_name: str) -> dict:
     """
     Collects the contents of a single FTP directory.
     CDs into the directory, checks for HTM files, collects valid
@@ -308,7 +309,7 @@ def collect_directory_contents(ftp, dir_name):
             has_htm = True
 
         elif ext in ALLOWED_EXTENSIONS:
-            if is_valid_filesize(filename, ftp):
+            if is_valid_file_size(filename, ftp):
                 files.append(filename)
 
         else:
@@ -318,7 +319,7 @@ def collect_directory_contents(ftp, dir_name):
 
     return {"files": files, "has_htm": has_htm}
 
-def build_directory_manifest(ftp):
+def build_directory_manifest(ftp: FTP) -> dict:
     """
     Builds a manifest of all processable directories and their contents.
     Orchestrates list_processable_directories and collect_directory_contents,
@@ -366,7 +367,7 @@ def build_directory_manifest(ftp):
 
     return manifest
 
-def is_scheduled_run_time():
+def is_scheduled_run_time() -> bool:
     """
     Checks whether the current day and time match the scheduled run window.
 
@@ -381,8 +382,73 @@ def is_scheduled_run_time():
         and now.minute == SCHEDULE_MINUTE
     )
 
+def process_single_case(ftp: FTP, child_dir_name: str, child_dir_data: dict) -> tuple:
+    """
+    Downloads files for a single case, reformats the UCN, and runs the STAC upload script.
+
+    Args:
+        ftp (FTP): Active FTP connection object.
+        child_dir_name (str): Name of the child directory on the FTP server.
+        child_dir_data (dict): Manifest entry containing 'ucn', 'files', and 'has_htm' keys.
+
+    Returns:
+        tuple: (is_match (bool), temp_dir (str)) — whether STAC found a match and the
+               path to the local temp directory containing downloaded files.
+    """
+    ftp.cwd(child_dir_name)
+    temp_dir, local_file_paths = download_files_to_temp(ftp, child_dir_data["files"])
+    ftp.cwd(RETURN_TO_PARENT_DIRECTORY)
+
+    ucn = child_dir_data["ucn"]
+    reformatted = reformat_unknown_ucn(ucn)
+    print(f"Original UCN: {ucn}")
+    print(f"Reformatted UCN: {reformatted}")
+
+    is_match = run_stac_script(reformatted, local_file_paths, child_dir_name)
+
+    return is_match, temp_dir
+
+def handle_match_results(ftp: FTP, is_match: bool, temp_dir: str, child_dir_data: dict, child_dir_name: str, case_count_run: int) -> int:
+    """
+    Handles post-STAC cleanup and FTP directory management based on match result.
+
+    If matched: deletes temp files, renames and moves the directory to Completed,
+    or flags it with an HTM error prefix if an HTM file was detected.
+    If not matched: deletes temp files and sends a no-match error notification.
+
+    Args:
+        ftp (FTP): Active FTP connection object.
+        is_match (bool): Whether STAC found a matching case.
+        temp_dir (str): Path to the local temp directory to delete.
+        child_dir_data (dict): Manifest entry containing 'has_htm' key.
+        child_dir_name (str): Name of the child directory on the FTP server.
+        case_count_run (int): Running count of successfully completed cases.
+
+    Returns:
+        int: Updated case count.
+    """
+    if is_match:
+        delete_temp_dir(temp_dir)
+        if child_dir_data[HAS_HTM_KEY]:
+            renamed = rename_directory(ftp, child_dir_name, ERROR_HTM_PREFIX, SCRIPT_RAN_SUFFIX)
+            htm_file_error = f"HTM file detected — renamed to '{renamed}', skipping move to Completed."
+            print(htm_file_error)
+            send_error_email(htm_file_error)
+        else:
+            renamed = rename_directory(ftp, child_dir_name, DELETE_DIR_PREFIX, SCRIPT_RAN_SUFFIX)
+            move_to_completed(ftp, renamed, COMPLETED_DIR_NAME)
+            case_count_run += 1
+            print(f"Case count: {case_count_run}")
+    else:
+        delete_temp_dir(temp_dir)
+        no_matching_stac_ucn_error = f"No match found for '{child_dir_name}'. Directory left on FTP."
+        print(no_matching_stac_ucn_error)
+        send_error_email(no_matching_stac_ucn_error)
+
+    return case_count_run
+
 # MAIN LOOP SETUP
-def run_psco911_script():
+def run_psco911_script() -> None:
     case_count_run = 0
 
     try:
@@ -410,33 +476,8 @@ def run_psco911_script():
                         print(f"number of files: {len(child_dir_data['files'])}")
                         print("-vvvvvvvvvvvvvvvvvvvvvvv-")
 
-                        ftp.cwd(child_dir_name)
-                        temp_dir, local_file_paths = download_files_to_temp(ftp, child_dir_data["files"])
-                        ftp.cwd(RETURN_TO_PARENT_DIRECTORY)
-
-                        ucn = child_dir_data["ucn"]
-                        reformatted = reformat_unknown_ucn(ucn)
-                        print(f"Original UCN: {ucn}")
-                        print(f"Reformatted UCN: {reformatted}")
-
-                        is_match = run_stac_script(reformatted, local_file_paths, child_dir_name)
-                        if is_match:
-                            delete_temp_dir(temp_dir)
-                            if child_dir_data[HAS_HTM_KEY]:
-                                renamed = rename_directory(ftp, child_dir_name, ERROR_HTM_PREFIX, SCRIPT_RAN_SUFFIX)
-                                htm_file_error = f"HTM file detected — renamed to '{renamed}', skipping move to Completed."
-                                print(htm_file_error)
-                                send_error_email(htm_file_error)
-                            else:
-                                renamed = rename_directory(ftp, child_dir_name, DELETE_DIR_PREFIX, SCRIPT_RAN_SUFFIX)
-                                move_to_completed(ftp, renamed, COMPLETED_DIR_NAME)
-                                case_count_run += 1
-                                print(f"Case count: {case_count_run}")
-                        else:
-                            delete_temp_dir(temp_dir)
-                            no_matching_stac_ucn_error = f"No match found for '{child_dir_name}'. Directory left on FTP."
-                            print(no_matching_stac_ucn_error)
-                            send_error_email(no_matching_stac_ucn_error)
+                        is_match, temp_dir =  process_single_case(ftp, child_dir_name, child_dir_data)
+                        case_count_run = handle_match_results(ftp, is_match, temp_dir, child_dir_data, child_dir_name, case_count_run)
 
                     except Exception as e:
                         failed_error = f"Failed to process '{child_dir_name}': {e}"
@@ -453,15 +494,15 @@ def run_psco911_script():
         send_error_email(fatal_error)
 
 if __name__ == "__main__":
-
-    script_last_ran_date = None
-    while True:
-        if is_scheduled_run_time() and script_last_ran_date != datetime.date.today():
-            run_psco911_script()
-            script_last_ran_date = datetime.date.today()
-        else:
-            print(datetime.datetime.now().strftime("%H:%M"))
-            time.sleep(SLEEP_INTERVAL_SECONDS)
+    #
+    # script_last_ran_date = None
+    # while True:
+    #     if is_scheduled_run_time() and script_last_ran_date != datetime.date.today():
+    #         run_psco911_script()
+    #         script_last_ran_date = datetime.date.today()
+    #     else:
+    #         print(datetime.datetime.now().strftime("%H:%M"))
+    #         time.sleep(SLEEP_INTERVAL_SECONDS)
 
     # TESTING SCRIPT FUNCTION CALL
-    # run_psco911_script()
+    run_psco911_script()
