@@ -1,2 +1,6 @@
 key.py
 chromedriver-win64
+.idea/PSCO911.iml
+.idea/workspace.xml
+.idea/misc.xml
+__pycache__/
