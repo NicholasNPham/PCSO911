@@ -64,7 +64,7 @@ SAVE_IMAGE_BUTTON = "SaveImage"
 IMAGE_SAVED_NOTIFICATION_XPATH = "//div[contains(@class,'c-notification-success')]"
 
 # FUNCTIONS
-def names_match(stac_name, child_dir_name):
+def names_match(stac_name: str, child_dir_name: str) -> bool:
     """
     Check whether two names are a fuzzy match by comparing their word tokens.
 
@@ -88,7 +88,7 @@ def names_match(stac_name, child_dir_name):
 
     return stac_tokens.issubset(dir_tokens) or dir_tokens.issubset(stac_tokens)
 
-def setup_browser():
+def setup_browser() -> tuple:
     """Open Chrome, log in to STAC website, and wait for the sidebar.
 
     Returns:
@@ -105,9 +105,9 @@ def setup_browser():
     driver.get(WEBSITE) # Initialized the Chromedriver with the Website.
     driver.maximize_window() # Maximizes the Website
 
-    return (driver, wait)
+    return driver, wait
 
-def browser_login(driver, wait):
+def browser_login(driver: webdriver.Chrome, wait: WebDriverWait) -> tuple:
     """
     Log in to the STAC website using stored credentials.
 
@@ -132,9 +132,9 @@ def browser_login(driver, wait):
     driver.find_element(By.ID, SUBMIT_LOGIN_BUTTON_ID).click() # clicks submit to log in.
     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, CASES_SIDEBAR_BUTTON_CSS_SELECTOR))) # Waits for the "Cases Sidebar Button" to be clickable in order to move on.
 
-    return (driver, wait)
+    return driver, wait
 
-def navigate_to_search(driver, wait):
+def navigate_to_search(driver: webdriver.Chrome, wait: WebDriverWait) -> tuple:
     """Navigate to the search menu and prepare the dropdown for case search.
 
     Args:
@@ -151,15 +151,16 @@ def navigate_to_search(driver, wait):
     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, SEARCH_BAR_DROPDOWN_OPTION_CSS_SELECTOR))).click() # clicks on the dropdown menu
     wait.until(EC.element_to_be_clickable((By.XPATH, UCN_SEARCH_BAR_DROPDOWN_OPTION_XPATH))).click() # this only waits to see if any one of the options is clickable
 
-    return (driver, wait)
+    return driver, wait
 
-def search_by_ucn(driver, wait, ucn_value, child_dir_name):
+def search_by_ucn(driver: webdriver.Chrome, wait: WebDriverWait, ucn_value: str, child_dir_name: str) -> tuple:
     """Search for a case by Universal Case Number (UCN).
 
     Args:
         driver (WebDriver): Selenium Chrome driver.
         wait (WebDriverWait): WebDriverWait object for explicit waits.
-        ucn_value (str):1 HO Universal Case Number to search for.
+        ucn_value (str): 1 HO Universal Case Number to search for.
+        child_dir_name (str): the filename of the child directory
 
     Returns:
         tuple (WebDriver, WebDriverWait): Unchanged driver and wait for chaining.
@@ -211,7 +212,7 @@ def search_by_ucn(driver, wait, ucn_value, child_dir_name):
 
     return (driver, wait), is_match
 
-def wait_for_all_uploads(wait, expected_count):
+def wait_for_all_uploads(wait: WebDriverWait, expected_count: int) -> bool:
     """
     Waits until the number of successfully uploaded files matches expected count.
 
@@ -226,22 +227,20 @@ def wait_for_all_uploads(wait, expected_count):
     print(f"{expected_count}/{expected_count} files uploaded successfully.")
     return True
 
-def add_image(driver, wait, file_list):
-    """Navigate to the Images tab and trigger the file upload dialog.
+def navigate_to_add_image_dialog(driver: webdriver.Chrome, wait: WebDriverWait) -> tuple:
+    """
+    Navigates to the Add Image dialog and selects the 911AUDIO type and subtype.
 
     Args:
         driver (WebDriver): Selenium Chrome driver.
         wait (WebDriverWait): WebDriverWait object for explicit waits.
-        file_list (list): List of files to add.
 
     Returns:
         tuple (WebDriver, WebDriverWait): Unchanged driver and wait for chaining.
 
     Raises:
-        TimeoutException: If the Images tab or Add button fails to become clickable.
-        NoSuchElementException: If the dropdown menu or file upload button cannot be found.
+        TimeoutException: If any dialog element fails to become visible or clickable.
     """
-
     wait.until(EC.element_to_be_clickable((By.ID, ADD_BUTTON_BAR_OF_IMAGES_ID))).click()
     add_image_dropdown_button = driver.find_element(By.CSS_SELECTOR, ADD_IMAGE_DROPDOWN_MENU_CSS_SELECTOR)
     driver.execute_script("arguments[0].click();", add_image_dropdown_button)
@@ -257,23 +256,71 @@ def add_image(driver, wait, file_list):
     select_btn = wait.until(EC.visibility_of_element_located((By.XPATH, SELECT_BUTTON_XPATH)))
     driver.execute_script("arguments[0].click();", select_btn)
 
+    return driver, wait
+
+def upload_files(driver: webdriver.Chrome, wait: WebDriverWait, file_list: list) -> tuple:
+    """
+    Sends local file paths to the hidden file input and waits for all uploads to complete.
+
+    Args:
+        driver (WebDriver): Selenium Chrome driver.
+        wait (WebDriverWait): WebDriverWait object for explicit waits.
+        file_list (list): List of absolute local file paths to upload.
+
+    Returns:
+        tuple (WebDriver, WebDriverWait): Unchanged driver and wait for chaining.
+
+    Raises:
+        TimeoutException: If the file input is not found or uploads do not complete.
+    """
     # Send file path directly to hidden input — bypasses OS file dialog entirely
     file_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ADD_IMAGE_UPLOAD_DROPBOX_CSS_SELECTOR)))
     driver.execute_script("arguments[0].removeAttribute('class')", file_input)  # unhide the input
-
-    upload_wait = WebDriverWait(driver, FILE_UPLOAD_WAIT_TIMEOUT_SECONDS)
 
     # Uploading Files to the DropBox
     file_input.send_keys("\n".join(file_list))
     wait_for_all_uploads(wait, len(file_list))
 
+    return driver, wait
+
+def save_and_confirm(driver: webdriver.Chrome) -> None:
+    """
+    Clicks the Save button and waits for the success notification to confirm the image was saved.
+
+    Args:
+        driver (WebDriver): Selenium Chrome driver.
+
+    Returns:
+        None
+    """
+    upload_wait = WebDriverWait(driver, FILE_UPLOAD_WAIT_TIMEOUT_SECONDS)
+
     upload_wait.until(EC.element_to_be_clickable((By.ID, SAVE_IMAGE_BUTTON))).click()
     upload_wait.until(EC.presence_of_element_located((By.XPATH, IMAGE_SAVED_NOTIFICATION_XPATH)))
     print("Image saved successfully.")
 
-    return (driver, wait)
+    return None
 
-def teardown_browser(driver) -> None:
+def add_image(driver: webdriver.Chrome, wait: WebDriverWait, file_list: list) -> None:
+    """
+    Orchestrates the full image upload workflow: navigates to the Add Image dialog,
+    uploads files, and confirms the save.
+
+    Args:
+        driver (WebDriver): Selenium Chrome driver.
+        wait (WebDriverWait): WebDriverWait object for explicit waits.
+        file_list (list): List of absolute local file paths to upload.
+
+    Returns:
+        None
+    """
+    navigate_to_add_image_dialog(driver, wait)
+    upload_files(driver, wait, file_list)
+    save_and_confirm(driver)
+
+    return None
+
+def teardown_browser(driver: webdriver.Chrome) -> None:
     """
     Closes the browser and ends the WebDriver session.
 
@@ -286,12 +333,13 @@ def teardown_browser(driver) -> None:
     driver.quit()
 
 # MAIN LOOP FUNCTIONS
-def run_stac_script(universal_case_number, file_list_from_dict, child_dir_name):
+def run_stac_script(universal_case_number: str, file_list_from_dict: list, child_dir_name: str) -> bool:
     """
     Main orchestrator: setup, navigate, search, and add files.
     Args:
-         universal_case_number (str): Universal Case Number.
-         file_list_from_dict (list): Dictionary of files to add.
+          universal_case_number (str): Universal Case Number to search in STAC.
+        file_list_from_dict (list): List of absolute local file paths to upload.
+        child_dir_name (str): FTP child directory name used for defendant name matching.
     """
     driver, wait = setup_browser()
     try:
@@ -299,7 +347,8 @@ def run_stac_script(universal_case_number, file_list_from_dict, child_dir_name):
         driver, wait = navigate_to_search(driver, wait)
         (driver, wait), is_match = search_by_ucn(driver, wait, universal_case_number, child_dir_name)
         if is_match:
-            driver, wait = add_image(driver, wait, file_list_from_dict)
+            add_image(driver, wait, file_list_from_dict)
+
     finally:
         teardown_browser(driver)
 
