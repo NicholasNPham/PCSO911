@@ -494,15 +494,15 @@ def run_psco911_script() -> None:
         send_error_email(fatal_error)
 
 if __name__ == "__main__":
-    #
-    # script_last_ran_date = None
-    # while True:
-    #     if is_scheduled_run_time() and script_last_ran_date != datetime.date.today():
-    #         run_psco911_script()
-    #         script_last_ran_date = datetime.date.today()
-    #     else:
-    #         print(datetime.datetime.now().strftime("%H:%M"))
-    #         time.sleep(SLEEP_INTERVAL_SECONDS)
+
+    script_last_ran_date = None
+    while True:
+        if is_scheduled_run_time() and script_last_ran_date != datetime.date.today():
+            run_psco911_script()
+            script_last_ran_date = datetime.date.today()
+        else:
+            print(datetime.datetime.now().strftime("%H:%M"))
+            time.sleep(SLEEP_INTERVAL_SECONDS)
 
     # TESTING SCRIPT FUNCTION CALL
-    run_psco911_script()
+    # run_psco911_script()
