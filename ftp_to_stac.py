@@ -6,7 +6,6 @@ via the STAC web interface using Selenium WebDriver automation.
 """
 
 # Standard Library Imports
-import time
 import re
 
 # Third-party Imports
@@ -27,28 +26,42 @@ FILE_UPLOAD_WAIT_TIMEOUT_SECONDS = 60
 EXCLUDED_TOKENS = {"AM", "SVP", "AME", "SO", "AMSP", "JLA", "PJLA", "SP", "ALERT", "BKGRDALERT", "CP", "DO", "NOT", "USE", "GANG", "NCP", "NO", "CC", "OSCP", "SPCALERT", "TTP", "VFOSC", "HA"}
 
 # HTML
+#LOGIN
 LOGIN_DROPDOWN_MENU_ID = 'LoginProvider'
 USERNAME_AND_PASSWORD_DROPDOWN_MENU_VALUE = '0'
 USERNAME_FIELD_ID = 'Username'
 PASSWORD_FIELD_ID = 'Password'
 SUBMIT_LOGIN_BUTTON_ID = 'submitLogin'
+
+# CASES SIDEBAR PAGE
 CASES_SIDEBAR_BUTTON_CSS_SELECTOR = "[data-menuid='incident']"
+
+# SEARCHING UCN AND RESULTS
 SEARCH_BAR_DROPDOWN_OPTION_CSS_SELECTOR = "button[role='button'][aria-label='select']"
 UCN_SEARCH_BAR_DROPDOWN_OPTION_XPATH = "//li[@role='option']//span[text()='UCN']"
 SEARCH_BAR_FIELD_ID = "incidentsSearchMainSearchValue"
 SEARCH_BAR_BUTTON_ID = "incidentsSearchMainButton"
+NO_RECORDS_FOUND_CSS_SELECTOR = ".k-grid-norecords-template"
+CASE_NAME_FROM_STAC_UCN_SEARCH = "td[data-original-column-name='Def_Name'] span.k-button-text"
+
+# ADD IMAGE PAGE
 IMAGES_TAB_OF_CASE_ID = "incidentsTab-tab-3"
 ADD_BUTTON_BAR_OF_IMAGES_ID = "AddNewImagesTab"
 ADD_IMAGE_DROPDOWN_MENU_CSS_SELECTOR = "[data-id='newImage']"
+
+# ADD IMAGE TYPE DROPDOWN MENU
 SELECT_FILES_BUTTON_CSS_SELECTOR = ".k-upload-button"
 IMAGE_SUB_TYPE_FIND_BUTTON_ID = "image_sub_typeFindButton"
 IMAGE_SUB_TYPE_ROW_XPATH = "//span[text()='911AUDIO']"
 SELECT_BUTTON_XPATH = "//span[text()='Select']/parent::button"
+
+# UPLOADING AND SAVING FILES
 ADD_IMAGE_UPLOAD_DROPBOX_CSS_SELECTOR = "input[id^='cipFileUpload_TelerikUpload']"
 FILE_UPLOAD_SUCCESS_XPATH = "//span[contains(@class,'k-file-validation-message') and text()='File(s) uploaded successfully.']"
 SAVE_IMAGE_BUTTON = "SaveImage"
+
+# CONFIRMATION OF SAVE
 IMAGE_SAVED_NOTIFICATION_XPATH = "//div[contains(@class,'c-notification-success')]"
-CASE_NAME_FROM_STAC_UCN_SEARCH = "td[data-original-column-name='Def_Name'] span.k-button-text"
 
 # FUNCTIONS
 def names_match(stac_name, child_dir_name):
@@ -70,9 +83,8 @@ def names_match(stac_name, child_dir_name):
     stac_tokens = set(w for w in re.findall(r'[a-zA-Z]+', stac_name.upper()) if w not in EXCLUDED_TOKENS)
     dir_tokens = set(w for w in re.findall(r'[a-zA-Z]+', child_dir_name.upper()) if w not in EXCLUDED_TOKENS)
 
-    # Uncommit This to View Name Tokens
-    # print(f"STAC tokens: {stac_tokens}")
-    # print(f"DIR tokens: {dir_tokens}")
+    print(f"STAC tokens: {stac_tokens}")
+    print(f"DIR tokens: {dir_tokens}")
 
     return stac_tokens.issubset(dir_tokens) or dir_tokens.issubset(stac_tokens)
 
@@ -90,17 +102,35 @@ def setup_browser():
     service = Service(CHROME_PATH)
     driver = webdriver.Chrome(service=service)
     wait = WebDriverWait(driver, WEBDRIVER_WAIT_TIMEOUT_SECONDS)
-    driver.get(WEBSITE) # opens to the website.
-    driver.maximize_window() # maximizes the web driver
+    driver.get(WEBSITE) # Initialized the Chromedriver with the Website.
+    driver.maximize_window() # Maximizes the Website
+
+    return (driver, wait)
+
+def browser_login(driver, wait):
+    """
+    Log in to the STAC website using stored credentials.
+
+    Args:
+        driver (WebDriver): Selenium Chrome driver.
+        wait (WebDriverWait): WebDriverWait object for explicit waits.
+
+    Returns:
+        tuple (WebDriver, WebDriverWait): Unchanged driver and wait for chaining.
+
+    Raises:
+        TimeoutException: If the login fields or sidebar button fail to become clickable.
+    """
     # LOGIN PATH
-    dropdown_element = wait.until(EC.presence_of_element_located((By.ID, LOGIN_DROPDOWN_MENU_ID)))
-    dropdown = Select(dropdown_element)
-    dropdown.select_by_value(USERNAME_AND_PASSWORD_DROPDOWN_MENU_VALUE)
+
+    dropdown_element = wait.until(EC.presence_of_element_located((By.ID, LOGIN_DROPDOWN_MENU_ID))) # Targets the "Authenticate Using" Dropdown Menu
+    dropdown = Select(dropdown_element) # Targets the Dropdown Menu to Dropdown.
+    dropdown.select_by_value(USERNAME_AND_PASSWORD_DROPDOWN_MENU_VALUE) # Selects Value "0" which is "Username and Password"
+
     wait.until(EC.element_to_be_clickable((By.ID, USERNAME_FIELD_ID))).send_keys(STAC3_USERNAME) # finds username field enters username
     wait.until(EC.element_to_be_clickable((By.ID, PASSWORD_FIELD_ID))).send_keys(STAC3_PASSWORD) # finds password field and enters password
     driver.find_element(By.ID, SUBMIT_LOGIN_BUTTON_ID).click() # clicks submit to log in.
-    # wait for the sidebar button to appear (proof login worked)
-    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, CASES_SIDEBAR_BUTTON_CSS_SELECTOR)))
+    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, CASES_SIDEBAR_BUTTON_CSS_SELECTOR))) # Waits for the "Cases Sidebar Button" to be clickable in order to move on.
 
     return (driver, wait)
 
@@ -138,24 +168,46 @@ def search_by_ucn(driver, wait, ucn_value, child_dir_name):
         TimeoutException: If the UCN dropdown option fails to become clickable.
         NoSuchElementException: If the search field or button cannot be found.
     """
-    wait.until(EC.element_to_be_clickable((By.XPATH, UCN_SEARCH_BAR_DROPDOWN_OPTION_XPATH))).click()
-    driver.find_element(By.ID, SEARCH_BAR_FIELD_ID).send_keys(ucn_value)
-    driver.find_element(By.ID, SEARCH_BAR_BUTTON_ID).click()
-    stac_case_name = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, CASE_NAME_FROM_STAC_UCN_SEARCH))).text
-    is_match = names_match(stac_case_name, child_dir_name)
+
+    search_field = wait.until(EC.element_to_be_clickable((By.ID, SEARCH_BAR_FIELD_ID))) # Initializes the "Searchbar Field" to be ready
+    search_field.clear() # Clears the "Searchbar Field".
+    search_field.click() # Clicks the "Searchbar Field".
+    search_field.send_keys(ucn_value) # Sends the "UCN values" to be "Typed in the "Searchbar Field"
+    driver.find_element(By.ID, SEARCH_BAR_BUTTON_ID).click() # Clicks the "Search Button to Search"
+
+    """
+    find_elements: always returns a list; either populated or empty.
+    wait.until: Repeats the call until it returns a "truthy list" or times out.
+    
+    Three Results:
+    - Returns a name found in the row. -> "Truthy"
+    - Returns "No Record Found" -> "Truthy"
+    - Returns "[]" -> False
+    """
+    wait.until(lambda d:
+               d.find_elements(By.CSS_SELECTOR, NO_RECORDS_FOUND_CSS_SELECTOR) or
+               d.find_elements(By.CSS_SELECTOR, CASE_NAME_FROM_STAC_UCN_SEARCH)
+               )
+
+    no_records = driver.find_elements(By.CSS_SELECTOR, NO_RECORDS_FOUND_CSS_SELECTOR) # If "No Records Found" is "Truthy" print and return False.
+    if no_records:
+        print("NO RECORDS FOUND IN STAC")
+        print("-------------------")
+        return (driver, wait), False
+
+    stac_case_name = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, CASE_NAME_FROM_STAC_UCN_SEARCH))).text # If name found, initialize the name in the variable
+    is_match = names_match(stac_case_name, child_dir_name) # Calls the function names_match to determine if the name found matches the child directory name tokens.
+
+    print(f"STAC name: '{stac_case_name}'")
+    print(f"DIR name: '{child_dir_name}'")
+
     if is_match:
-        wait.until(EC.element_to_be_clickable((By.ID, IMAGES_TAB_OF_CASE_ID))).click()
+        wait.until(EC.element_to_be_clickable((By.ID, IMAGES_TAB_OF_CASE_ID))).click() # Clicks the Images Section Tab.
         print("DEFENDANT MATCHES 911 CHILD DIRECTORY NAME")
         print("-------------------")
     else:
         print("DEFENDANT DOES NOT MATCH 911 CHILD DIRECTORY NAME")
         print("-------------------")
-
-    # Uncommit this to View STAC & DIR Name
-    # print(f"STAC name: '{stac_case_name}'")
-    # print(f"DIR name: '{child_dir_name}'")
-
-    time.sleep(PAUSE_BETWEEN_ACTIONS_SECONDS)
 
     return (driver, wait), is_match
 
@@ -190,26 +242,20 @@ def add_image(driver, wait, file_list):
         NoSuchElementException: If the dropdown menu or file upload button cannot be found.
     """
 
-    # Testing to see if the all listview content needs to finish loading before new image can be clicked
-    # wait.until(EC.element_to_be_clickable((By.ID, IMAGES_TAB_OF_CASE_ID))).click()
-    # wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ".k-listview-content")))
-    # wait.until(EC.element_to_be_clickable((By.ID, ADD_BUTTON_BAR_OF_IMAGES_ID))).click()
-    # time.sleep(PAUSE_BETWEEN_ACTIONS_SECONDS)
-    # driver.execute_script("""
-    #         var el = document.querySelector('[data-id="newImage"]');
-    #         el.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true}));
-    #     """)
-    # time.sleep(PAUSE_BETWEEN_ACTIONS_SECONDS)
-
     wait.until(EC.element_to_be_clickable((By.ID, ADD_BUTTON_BAR_OF_IMAGES_ID))).click()
     add_image_dropdown_button = driver.find_element(By.CSS_SELECTOR, ADD_IMAGE_DROPDOWN_MENU_CSS_SELECTOR)
     driver.execute_script("arguments[0].click();", add_image_dropdown_button)
 
     # Finding the Correct Type and Subtype
-    wait.until(EC.element_to_be_clickable((By.ID, IMAGE_SUB_TYPE_FIND_BUTTON_ID))).click()
-    wait.until(EC.element_to_be_clickable((By.ID, IMAGE_SUB_TYPE_FIND_BUTTON_ID))).click()
-    wait.until(EC.element_to_be_clickable((By.XPATH, IMAGE_SUB_TYPE_ROW_XPATH))).click()
-    wait.until(EC.element_to_be_clickable((By.XPATH, SELECT_BUTTON_XPATH))).click()
+    wait.until(EC.visibility_of_element_located((By.ID, IMAGE_SUB_TYPE_FIND_BUTTON_ID))) # Waits for the "add" button to be clickable then clicks
+    find_button = wait.until(EC.element_to_be_clickable((By.ID, IMAGE_SUB_TYPE_FIND_BUTTON_ID))) # Finds the first item inside the dropdown menu.
+    driver.execute_script("arguments[0].click();", find_button) # Uses Javascript to click the first item in the dropdown menu.
+
+    row = wait.until(EC.visibility_of_element_located((By.XPATH, IMAGE_SUB_TYPE_ROW_XPATH)))
+    driver.execute_script("arguments[0].click();", row)
+
+    select_btn = wait.until(EC.visibility_of_element_located((By.XPATH, SELECT_BUTTON_XPATH)))
+    driver.execute_script("arguments[0].click();", select_btn)
 
     # Send file path directly to hidden input — bypasses OS file dialog entirely
     file_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ADD_IMAGE_UPLOAD_DROPBOX_CSS_SELECTOR)))
@@ -223,10 +269,21 @@ def add_image(driver, wait, file_list):
 
     upload_wait.until(EC.element_to_be_clickable((By.ID, SAVE_IMAGE_BUTTON))).click()
     upload_wait.until(EC.presence_of_element_located((By.XPATH, IMAGE_SAVED_NOTIFICATION_XPATH)))
-    upload_wait.until(EC.invisibility_of_element_located((By.XPATH, IMAGE_SAVED_NOTIFICATION_XPATH)))
     print("Image saved successfully.")
 
     return (driver, wait)
+
+def teardown_browser(driver) -> None:
+    """
+    Closes the browser and ends the WebDriver session.
+
+    Args:
+        driver: The active Selenium WebDriver instance
+
+    Returns:
+        None
+    """
+    driver.quit()
 
 # MAIN LOOP FUNCTIONS
 def run_stac_script(universal_case_number, file_list_from_dict, child_dir_name):
@@ -234,18 +291,19 @@ def run_stac_script(universal_case_number, file_list_from_dict, child_dir_name):
     Main orchestrator: setup, navigate, search, and add files.
     Args:
          universal_case_number (str): Universal Case Number.
-         file_list_from_dict (dict): Dictionary of files to add.
+         file_list_from_dict (list): Dictionary of files to add.
     """
     driver, wait = setup_browser()
-    driver, wait = navigate_to_search(driver, wait)
-    (driver, wait), is_match = search_by_ucn(driver, wait, universal_case_number, child_dir_name)
-    if is_match:
-        driver, wait = add_image(driver, wait, file_list_from_dict)
-    time.sleep(WEBDRIVER_WAIT_TIMEOUT_SECONDS)
-    driver.quit()
+    try:
+        driver, wait = browser_login(driver, wait)
+        driver, wait = navigate_to_search(driver, wait)
+        (driver, wait), is_match = search_by_ucn(driver, wait, universal_case_number, child_dir_name)
+        if is_match:
+            driver, wait = add_image(driver, wait, file_list_from_dict)
+    finally:
+        teardown_browser(driver)
 
     return is_match
 
 # LOOP TESTING
-# driver, wait = setup_browser()
 # run_stac_script("24-00-CJ-0000-000-000", ["C:\\path\\to\\file.mp3"], "LAST FIRST 24-00-CJ-0000-000-000")
