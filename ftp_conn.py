@@ -4,14 +4,13 @@ from ftplib import FTP
 import re
 import os
 import shutil
-import getpass
 import sys
 import datetime
 import time
 
 # Local Imports
 from key import USERNAME, PASSWORD, FTP_LINK, ABSOLUTE_PATH, UNIVERSAL_CASE_NUMBER_PATTERN, UNC_PATH_TO_H_DRIVE
-from ftp_to_stac import run_stac_script
+from ftp_to_stac import run_stac_script, teardown_browser
 from ftp_outlook_error import send_error_email
 
 # CONSTANTS
@@ -385,15 +384,8 @@ def is_scheduled_run_time():
 # MAIN LOOP SETUP
 def run_psco911_script():
     case_count_run = 0
+
     try:
-
-        # COMMENT THIS OUT DEPENDING ON SITUATION
-
-        # THIS ALLOWS USER TO ENTER IN PASSWORD HIDDEN IN CMD/POWERSHELL ONLY
-        # USERNAME = input("FTP Username: ")
-        # PASSWORD = getpass.getpass("FTP Password: ")
-
-        # IF NOT RUNNING THE IMPORT GETPASS IMPORT THE USERNAME AND PASSWORD.
         ftp = connect_to_ftp(USERNAME, PASSWORD, FTP_LINK)
         change_directory_911_phone_calls(ABSOLUTE_PATH, ftp)
         manifest = build_directory_manifest(ftp)
@@ -470,3 +462,6 @@ if __name__ == "__main__":
         else:
             print(datetime.datetime.now().strftime("%H:%M"))
             time.sleep(SLEEP_INTERVAL_SECONDS)
+
+    # TESTING SCRIPT FUNCTION CALL
+    # run_psco911_script()
