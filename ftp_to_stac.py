@@ -83,8 +83,9 @@ def names_match(stac_name: str, child_dir_name: str) -> bool:
     stac_tokens = set(w for w in re.findall(r'[a-zA-Z]+', stac_name.upper()) if w not in EXCLUDED_TOKENS)
     dir_tokens = set(w for w in re.findall(r'[a-zA-Z]+', child_dir_name.upper()) if w not in EXCLUDED_TOKENS)
 
-    print(f"STAC tokens: {stac_tokens}")
-    print(f"DIR tokens: {dir_tokens}")
+    # Uncomment to Test
+    # print(f"STAC tokens: {stac_tokens}")
+    # print(f"DIR tokens: {dir_tokens}")
 
     return stac_tokens.issubset(dir_tokens) or dir_tokens.issubset(stac_tokens)
 
@@ -199,8 +200,9 @@ def search_by_ucn(driver: webdriver.Chrome, wait: WebDriverWait, ucn_value: str,
     stac_case_name = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, CASE_NAME_FROM_STAC_UCN_SEARCH))).text # If name found, initialize the name in the variable
     is_match = names_match(stac_case_name, child_dir_name) # Calls the function names_match to determine if the name found matches the child directory name tokens.
 
-    print(f"STAC name: '{stac_case_name}'")
-    print(f"DIR name: '{child_dir_name}'")
+    # Uncomment to Test
+    # print(f"STAC name: '{stac_case_name}'")
+    # print(f"DIR name: '{child_dir_name}'")
 
     if is_match:
         wait.until(EC.element_to_be_clickable((By.ID, IMAGES_TAB_OF_CASE_ID))).click() # Clicks the Images Section Tab.
