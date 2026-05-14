@@ -10,6 +10,7 @@ import re
 
 # Third-party Imports
 from selenium import webdriver
+from selenium.common import TimeoutException
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -299,6 +300,7 @@ def save_and_confirm(driver: webdriver.Chrome) -> None:
 
     upload_wait.until(EC.element_to_be_clickable((By.ID, SAVE_IMAGE_BUTTON))).click()
     upload_wait.until(EC.presence_of_element_located((By.XPATH, IMAGE_SAVED_NOTIFICATION_XPATH)))
+    upload_wait.until(EC.invisibility_of_element_located((By.XPATH, IMAGE_SAVED_NOTIFICATION_XPATH)))
     print("Image saved successfully.")
 
     return None
@@ -337,12 +339,18 @@ def teardown_browser(driver: webdriver.Chrome) -> None:
 # MAIN LOOP FUNCTIONS
 def run_stac_script(universal_case_number: str, file_list_from_dict: list, child_dir_name: str) -> bool:
     """
-    Main orchestrator: setup, navigate, search, and add files.
+    Orchestrates the full STAC workflow: launches browser, logs in, searches by UCN,
+    and uploads files if a matching case is found.
+
     Args:
-          universal_case_number (str): Universal Case Number to search in STAC.
+        universal_case_number (str): Universal Case Number to search in STAC.
         file_list_from_dict (list): List of absolute local file paths to upload.
         child_dir_name (str): FTP child directory name used for defendant name matching.
+
+    Returns:
+        bool: True if a matching case was found and files were uploaded, False otherwise.
     """
+    is_match = False
     driver, wait = setup_browser()
     try:
         driver, wait = browser_login(driver, wait)
@@ -350,7 +358,6 @@ def run_stac_script(universal_case_number: str, file_list_from_dict: list, child
         (driver, wait), is_match = search_by_ucn(driver, wait, universal_case_number, child_dir_name)
         if is_match:
             add_image(driver, wait, file_list_from_dict)
-
     finally:
         teardown_browser(driver)
 

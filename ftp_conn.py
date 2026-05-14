@@ -231,7 +231,15 @@ def download_files_to_temp(ftp: FTP, file_list: list) -> tuple:
     return TEMP_DIR, local_file_path
 
 def delete_temp_dir(temp_dir: str) -> None:
-    """Deletes the temp directory and all its contents."""
+    """
+    Deletes the temporary directory and all of its contents.
+
+    Args:
+        temp_dir (str): Absolute path to the temporary directory to delete.
+
+    Returns:
+        None
+    """
     if os.path.exists(temp_dir):
         shutil.rmtree(temp_dir)
         print(f"Deleted temp directory: {temp_dir}")
@@ -449,6 +457,14 @@ def handle_match_results(ftp: FTP, is_match: bool, temp_dir: str, child_dir_data
 
 # MAIN LOOP SETUP
 def run_psco911_script() -> None:
+    """
+    Executes the full PSCO911 workflow: connects to FTP, builds a directory manifest,
+    and processes each case by downloading files, uploading to STAC, and managing
+    FTP directory state. Logs all output to a timestamped log file.
+
+    Returns:
+        None
+    """
     case_count_run = 0
 
     try:
