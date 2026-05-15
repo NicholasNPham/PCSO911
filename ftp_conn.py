@@ -9,7 +9,7 @@ import datetime
 import time
 
 # Local Imports
-from key import USERNAME, PASSWORD, FTP_LINK, ABSOLUTE_PATH, UNIVERSAL_CASE_NUMBER_PATTERN, UNC_PATH_TO_H_DRIVE
+from key import USERNAME, PASSWORD, FTP_LINK, ABSOLUTE_PATH, UNIVERSAL_CASE_NUMBER_PATTERN, UNC_PATH_TO_H_DRIVE, TEMP_DIR
 from ftp_to_stac import run_stac_script
 from ftp_outlook_error import send_error_email
 
@@ -21,7 +21,6 @@ FTP_TYPE_FILE = "file"
 ERROR_HTM_PREFIX = '_ERROR_HTM '
 DELETE_DIR_PREFIX = '_DELETE '
 SCRIPT_RAN_SUFFIX = ' _SCRIPT'
-TEMP_DIR =  r"H:\911_TEMP_FILES"
 EMPTY_FILE_SIZE = 0
 CURRENT_WORKING_DIRECTORY = '.'
 RETURN_TO_PARENT_DIRECTORY = '..'
@@ -54,14 +53,38 @@ UCN_TRIM_LENGTH = -3
 # CLASS
 class Tee:
     def __init__(self, file):
+        """
+        Initializes the Tee instance with a file object and saves the current stdout.
+
+        Args:
+            file: An open writable file object to mirror output into.
+
+        Returns:
+            None
+        """
         self.file = file # the .txt file you open
         self.terminal = sys.stdout # save the REAL console before replacing it
 
     def write(self, message):
+        """
+        Writes a message to both the terminal and the log file.
+
+        Args:
+            message (str): The string to write.
+
+        Returns:
+            None
+        """
         self.terminal.write(message) # sends to real console
         self.file.write(message) # sends to .txt file
 
     def flush(self):
+        """
+        Flushes both the terminal and file buffers to ensure output is written immediately.
+
+        Returns:
+            None
+        """
         self.terminal.flush()
         self.file.flush()
 
