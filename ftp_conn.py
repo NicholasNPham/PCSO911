@@ -220,6 +220,8 @@ def move_to_completed(ftp: FTP, dir_name: str, completed_folder: str) -> None:
         ftp: FTP connection object
         dir_name: current directory name
         completed_folder: name of the completed folder to move into
+    Returns:
+        None
     """
     try:
         ftp.rename(dir_name, f"{completed_folder}{FTP_PATH_SEPARATOR}{dir_name}")
