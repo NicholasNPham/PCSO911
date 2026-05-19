@@ -113,7 +113,7 @@ def connect_to_ftp(username: str, password: str, ftp_link: str) -> FTP:
 
 def change_directory_911_phone_calls(absolute_path: str, ftp: FTP) -> FTP:
     """
-    changing directory to PSCO911
+    changing directory to PCSO911
 
     Args:
         absolute_path: absolute path to directory to change
@@ -123,7 +123,7 @@ def change_directory_911_phone_calls(absolute_path: str, ftp: FTP) -> FTP:
     """
     try:
         ftp.cwd(absolute_path)
-        print("Changed Directory to PSCO911")
+        print("Changed Directory to PCSO911")
         return ftp
     except ftplib.error_perm as CHANGE_DIRECTORY_ERROR:
         ftp.quit()
@@ -481,9 +481,9 @@ def handle_match_results(ftp: FTP, is_match: bool, temp_dir: str, child_dir_data
     return case_count_run
 
 # MAIN LOOP SETUP
-def run_psco911_script() -> None:
+def run_pcso911_script() -> None:
     """
-    Executes the full PSCO911 workflow: connects to FTP, builds a directory manifest,
+    Executes the full PCSO911 workflow: connects to FTP, builds a directory manifest,
     and processes each case by downloading files, uploading to STAC, and managing
     FTP directory state. Logs all output to a timestamped log file.
 
@@ -539,11 +539,11 @@ if __name__ == "__main__":
     script_last_ran_date = None
     while True:
         if is_scheduled_run_time() and script_last_ran_date != datetime.date.today():
-            run_psco911_script()
+            run_pcso911_script()
             script_last_ran_date = datetime.date.today()
         else:
             print(datetime.datetime.now().strftime("%H:%M"))
             time.sleep(SLEEP_INTERVAL_SECONDS)
 
     # TESTING SCRIPT FUNCTION CALL
-    # run_psco911_script()
+    # run_pcso911_script()
