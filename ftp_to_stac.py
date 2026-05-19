@@ -18,7 +18,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
 
 # Local Imports
-from key import *
+from key import CHROME_PATH, WEBSITE, STAC3_USERNAME, STAC3_PASSWORD
 
 # CONSTANTS
 PAUSE_BETWEEN_ACTIONS_SECONDS = 1
@@ -161,7 +161,7 @@ def search_by_ucn(driver: webdriver.Chrome, wait: WebDriverWait, ucn_value: str,
     Args:
         driver (WebDriver): Selenium Chrome driver.
         wait (WebDriverWait): WebDriverWait object for explicit waits.
-        ucn_value (str): 1 HO Universal Case Number to search for.
+        ucn_value (str): 1 Universal Case Number to search for.
         child_dir_name (str): the filename of the child directory
 
     Returns:
