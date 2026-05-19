@@ -4,3 +4,5 @@ chromedriver-win64
 .idea/workspace.xml
 .idea/misc.xml
 __pycache__/
+.venv/
+log_*.txt
