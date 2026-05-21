@@ -247,12 +247,16 @@ def download_files_to_temp(ftp: FTP, file_list: list) -> tuple:
     os.makedirs(TEMP_DIR, exist_ok=True)
     local_file_path = []
 
-    for filename in file_list:
-        local_path = os.path.join(TEMP_DIR, filename)
-        with open(local_path, "wb") as file:
-            ftp.retrbinary(f"{FTP_RETR_COMMAND} {filename}", file.write)
-        local_file_path.append(local_path)
-        print(f"Downloaded {filename} to {local_path}")
+    try:
+        for filename in file_list:
+            local_path = os.path.join(TEMP_DIR, filename)
+            with open(local_path, "wb") as file:
+                ftp.retrbinary(f"{FTP_RETR_COMMAND} {filename}", file.write)
+            local_file_path.append(local_path)
+            print(f"Downloaded {filename} to {local_path}")
+    except (ftplib.all_errors, OSError) as DOWNLOAD_ERROR:
+        send_error_email(f"Failed to download files to Network Drive: {DOWNLOAD_ERROR}")
+        raise
     print("-------------------")
 
     return TEMP_DIR, local_file_path
