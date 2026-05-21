@@ -226,8 +226,10 @@ def move_to_completed(ftp: FTP, dir_name: str, completed_folder: str) -> None:
     try:
         ftp.rename(dir_name, f"{completed_folder}{FTP_PATH_SEPARATOR}{dir_name}")
         print(f"Moved '{dir_name}' to '{completed_folder}{FTP_PATH_SEPARATOR}{dir_name}'")
-    except ftplib.error_perm as MOVE_ERROR:
+        print("-------------------")
+    except ftplib.all_errors as MOVE_ERROR:
         print(f"Failed to move '{dir_name}' : {MOVE_ERROR}")
+        send_error_email(f"Failed to move '{dir_name}' : {MOVE_ERROR}")
         print("-------------------")
 
 def download_files_to_temp(ftp: FTP, file_list: list) -> tuple:
