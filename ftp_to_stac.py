@@ -17,6 +17,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
 
+from ftp_outlook_error import send_error_email
 # Local Imports
 from key import CHROME_PATH, WEBSITE, STAC3_USERNAME, STAC3_PASSWORD
 
@@ -298,9 +299,27 @@ def save_and_confirm(driver: webdriver.Chrome) -> None:
     """
     upload_wait = WebDriverWait(driver, FILE_UPLOAD_WAIT_TIMEOUT_SECONDS)
 
-    upload_wait.until(EC.element_to_be_clickable((By.ID, SAVE_IMAGE_BUTTON))).click()
-    upload_wait.until(EC.presence_of_element_located((By.XPATH, IMAGE_SAVED_NOTIFICATION_XPATH)))
-    upload_wait.until(EC.invisibility_of_element_located((By.XPATH, IMAGE_SAVED_NOTIFICATION_XPATH)))
+    try:
+        upload_wait.until(EC.element_to_be_clickable((By.ID, SAVE_IMAGE_BUTTON))).click()
+    except TimeoutException as SAVE_BUTTON_TIMEOUT:
+        print(f"Could not press the save button: {SAVE_BUTTON_TIMEOUT}")
+        send_error_email(f"Could not press the save button: {SAVE_BUTTON_TIMEOUT}")
+        raise
+
+    try:
+        upload_wait.until(EC.presence_of_element_located((By.XPATH, IMAGE_SAVED_NOTIFICATION_XPATH)))
+    except TimeoutException as IMAGE_SAVED_NOTIFICATION_POPUP_TIMEOUT:
+        print(f"Could not locate the popup after pressing save 'Image Saved'. : {IMAGE_SAVED_NOTIFICATION_POPUP_TIMEOUT}")
+        send_error_email(f"Could not locate the popup after pressing save 'Image Saved'. : {IMAGE_SAVED_NOTIFICATION_POPUP_TIMEOUT}")
+        raise
+
+    try:
+        upload_wait.until(EC.invisibility_of_element_located((By.XPATH, IMAGE_SAVED_NOTIFICATION_XPATH)))
+    except TimeoutException as IMAGE_SAVED_NOTIFICATION_POPUP_DISAPPEAR_TIMEOUT:
+        print(f'Popup did not disappear: {IMAGE_SAVED_NOTIFICATION_POPUP_DISAPPEAR_TIMEOUT}')
+        send_error_email(f'Popup did not disappear: {IMAGE_SAVED_NOTIFICATION_POPUP_DISAPPEAR_TIMEOUT}')
+        raise
+
     print("Image saved successfully.")
 
     return None
