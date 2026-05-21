@@ -245,20 +245,44 @@ def navigate_to_add_image_dialog(driver: webdriver.Chrome, wait: WebDriverWait) 
     Raises:
         TimeoutException: If any dialog element fails to become visible or clickable.
     """
-    wait.until(EC.element_to_be_clickable((By.ID, ADD_BUTTON_BAR_OF_IMAGES_ID))).click()
-    add_image_dropdown_button = driver.find_element(By.CSS_SELECTOR, ADD_IMAGE_DROPDOWN_MENU_CSS_SELECTOR)
-    driver.execute_script("arguments[0].click();", add_image_dropdown_button)
 
-    # Finding the Correct Type and Subtype
-    wait.until(EC.visibility_of_element_located((By.ID, IMAGE_SUB_TYPE_FIND_BUTTON_ID))) # Waits for the "add" button to be clickable then clicks
-    find_button = wait.until(EC.element_to_be_clickable((By.ID, IMAGE_SUB_TYPE_FIND_BUTTON_ID))) # Finds the first item inside the dropdown menu.
-    driver.execute_script("arguments[0].click();", find_button) # Uses Javascript to click the first item in the dropdown menu.
+    try:
+        # Finds the 'Image' Tab and Press '+ Add' and Selects 'New Image'
+        wait.until(EC.element_to_be_clickable((By.ID, ADD_BUTTON_BAR_OF_IMAGES_ID))).click()
+        add_image_dropdown_button = driver.find_element(By.CSS_SELECTOR, ADD_IMAGE_DROPDOWN_MENU_CSS_SELECTOR)
+        driver.execute_script("arguments[0].click();", add_image_dropdown_button)
+    except TimeoutException as IMAGE_TAB_ERROR:
+        print(f"Could not locate the Image Tab: {IMAGE_TAB_ERROR}")
+        send_error_email(f"Could not locate the Image Tab: {IMAGE_TAB_ERROR}")
+        raise
 
-    row = wait.until(EC.visibility_of_element_located((By.XPATH, IMAGE_SUB_TYPE_ROW_XPATH)))
-    driver.execute_script("arguments[0].click();", row)
+    try:
+        # Finding the Correct Type and Subtype
+        wait.until(EC.visibility_of_element_located((By.ID, IMAGE_SUB_TYPE_FIND_BUTTON_ID))) # Waits for the "add" button to be clickable then clicks
+        find_button = wait.until(EC.element_to_be_clickable((By.ID, IMAGE_SUB_TYPE_FIND_BUTTON_ID))) # Finds the first item inside the dropdown menu.
+        driver.execute_script("arguments[0].click();", find_button) # Uses Javascript to click the first item in the dropdown menu.
+    except TimeoutException as SUBTYPE_LIST_ERROR:
+        print(f"Could not locate the Subtype List: {SUBTYPE_LIST_ERROR}")
+        send_error_email(f"Could not locate the Subtype List: {SUBTYPE_LIST_ERROR}")
+        raise
 
-    select_btn = wait.until(EC.visibility_of_element_located((By.XPATH, SELECT_BUTTON_XPATH)))
-    driver.execute_script("arguments[0].click();", select_btn)
+    try:
+        # Finds the correct subtype
+        row = wait.until(EC.visibility_of_element_located((By.XPATH, IMAGE_SUB_TYPE_ROW_XPATH)))
+        driver.execute_script("arguments[0].click();", row)
+    except TimeoutException as SELECT_SUBTYPE_ERROR:
+        print(f"Could not locate the Subtype: {SELECT_SUBTYPE_ERROR}")
+        send_error_email(f"Could not locate the Subtype: {SELECT_SUBTYPE_ERROR}")
+        raise
+
+    try:
+        # presses the select button to confirm subtype
+        select_btn = wait.until(EC.visibility_of_element_located((By.XPATH, SELECT_BUTTON_XPATH)))
+        driver.execute_script("arguments[0].click();", select_btn)
+    except TimeoutException as SELECT_BUTTON_ERROR:
+        print(f"Could not locate the Select Button: {SELECT_BUTTON_ERROR}")
+        send_error_email(f"Could not locate the Select Button: {SELECT_BUTTON_ERROR}")
+        raise
 
     return driver, wait
 
