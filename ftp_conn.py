@@ -332,29 +332,41 @@ def collect_directory_contents(ftp: FTP, dir_name: str) -> dict:
             "has_htm": bool - True if any .htm or .html file was found
         }
     """
-    ftp.cwd(dir_name)
+    try:
+        ftp.cwd(dir_name)
 
-    has_htm = False
-    files = []
+        has_htm = False
+        files = []
 
-    for filename, attributes in ftp.mlsd(CURRENT_WORKING_DIRECTORY):
-        if attributes.get(FILE_METADATA_TYPE) != FTP_TYPE_FILE:
-            continue
+        for filename, attributes in ftp.mlsd(CURRENT_WORKING_DIRECTORY):
+            if attributes.get(FILE_METADATA_TYPE) != FTP_TYPE_FILE:
+                continue
 
-        ext = os.path.splitext(filename.lower())[1]
+            ext = os.path.splitext(filename.lower())[1]
 
-        if ext in HTM_EXTENSIONS:
-            print(f"HTM/HTML file detected: '{filename}'")
-            has_htm = True
+            if ext in HTM_EXTENSIONS:
+                print(f"HTM/HTML file detected: '{filename}'")
+                has_htm = True
 
-        elif ext in ALLOWED_EXTENSIONS:
-            if is_valid_file_size(filename, ftp):
-                files.append(filename)
+            elif ext in ALLOWED_EXTENSIONS:
+                if is_valid_file_size(filename, ftp):
+                    files.append(filename)
 
-        else:
-            print(f"Unexpected file extension skipped: '{filename}' in '{dir_name}'")
+            else:
+                print(f"Unexpected file extension skipped: '{filename}' in '{dir_name}'")
 
-    ftp.cwd(RETURN_TO_PARENT_DIRECTORY)
+    except (ftplib.all_errors, OSError) as CHANGE_DIR_IN_ERROR:
+        send_error_email(f"Failed to cwd into {dir_name}: {CHANGE_DIR_IN_ERROR}")
+        print(f"Failed to cwd into {dir_name}: {CHANGE_DIR_IN_ERROR}")
+        raise
+
+    try:
+        ftp.cwd(RETURN_TO_PARENT_DIRECTORY)
+    except (ftplib.all_errors, OSError)as CHANGE_DIR_OUT_ERROR:
+        send_error_email(f"Failed to cwd out of {dir_name}: {CHANGE_DIR_OUT_ERROR}")
+        print(f"Failed to cwd out {dir_name}: {CHANGE_DIR_OUT_ERROR}")
+        raise
+
 
     return {"files": files, "has_htm": has_htm}
 
