@@ -16,10 +16,11 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select
+from webdriver_manager.chrome import ChromeDriverManager
 
-from ftp_outlook_error import send_error_email
 # Local Imports
-from key import CHROME_PATH, WEBSITE, STAC3_USERNAME, STAC3_PASSWORD
+from ftp_outlook_error import send_error_email
+from key import WEBSITE, STAC3_USERNAME, STAC3_PASSWORD
 
 # CONSTANTS
 PAUSE_BETWEEN_ACTIONS_SECONDS = 1
@@ -102,7 +103,7 @@ def setup_browser() -> tuple:
         TimeoutException: If the sidebar element does not appear after login.
     """
     # DRIVER SET-UP
-    service = Service(CHROME_PATH)
+    service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service)
     wait = WebDriverWait(driver, WEBDRIVER_WAIT_TIMEOUT_SECONDS)
     driver.get(WEBSITE) # Initialized the Chromedriver with the Website.
