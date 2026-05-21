@@ -278,12 +278,22 @@ def upload_files(driver: webdriver.Chrome, wait: WebDriverWait, file_list: list)
         TimeoutException: If the file input is not found or uploads do not complete.
     """
     # Send file path directly to hidden input — bypasses OS file dialog entirely
-    file_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ADD_IMAGE_UPLOAD_DROPBOX_CSS_SELECTOR)))
-    driver.execute_script("arguments[0].removeAttribute('class')", file_input)  # unhide the input
+    try:
+        file_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ADD_IMAGE_UPLOAD_DROPBOX_CSS_SELECTOR)))
+        driver.execute_script("arguments[0].removeAttribute('class')", file_input)  # unhide the input
+    except TimeoutException as DROPBOX_TIMEOUT:
+        print(f"Could not find Dropbox area: {DROPBOX_TIMEOUT}")
+        send_error_email(f"Could not find Dropbox area: {DROPBOX_TIMEOUT}")
+        raise
 
     # Uploading Files to the DropBox
-    file_input.send_keys("\n".join(file_list))
-    wait_for_all_uploads(wait, len(file_list))
+    try:
+        file_input.send_keys("\n".join(file_list))
+        wait_for_all_uploads(wait, len(file_list))
+    except TimeoutException as DROPBOX_UPLOAD_TIMEOUT:
+        print(f"Took to long to upload in dropbox: {DROPBOX_UPLOAD_TIMEOUT}")
+        send_error_email(f"Took to long to upload in dropbox: {DROPBOX_UPLOAD_TIMEOUT}")
+        raise
 
     return driver, wait
 
