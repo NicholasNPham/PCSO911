@@ -7,6 +7,8 @@ import shutil
 import sys
 import datetime
 import time
+import random
+import string
 
 # Local Imports
 from key import USERNAME, PASSWORD, FTP_LINK, ABSOLUTE_PATH, UNIVERSAL_CASE_NUMBER_PATTERN, UNC_PATH_TO_H_DRIVE, TEMP_DIR
@@ -20,7 +22,7 @@ FTP_TYPE_DIR = "dir"
 FTP_TYPE_FILE = "file"
 ERROR_HTM_PREFIX = '_ERROR_HTM '
 DELETE_DIR_PREFIX = '_DELETE '
-SCRIPT_RAN_SUFFIX = ' _SCRIPT'
+SCRIPT_RAN_SUFFIX = ' _SCRIPT '
 EMPTY_FILE_SIZE = 0
 CURRENT_WORKING_DIRECTORY = '.'
 RETURN_TO_PARENT_DIRECTORY = '..'
@@ -169,22 +171,34 @@ def is_valid_file_size(filename: str, ftp: FTP) -> bool:
         print(f"Failed to get size of file: {NO_MEGABYTES_ERROR}")
         return False
 
-def rename_directory(ftp: FTP, old_name: str, prefix: str, suffix: str) -> str:
+def random_six_digit_suffix() -> str:
     """
-    Renames a directory by adding a prefix to its current name.
+    Generates a random six-digit numeric string to append to renamed directories,
+    preventing name collisions on the FTP server.
+
+    Returns:
+        str: A six-character string composed of random digits (0-9).
+    """
+    random_digits = "".join(random.choices(string.digits, k=6))
+    return random_digits
+
+def rename_directory(ftp: FTP, old_name: str, prefix: str, suffix: str, digits: str) -> str:
+    """
+    Renames a directory by prepending a prefix, appending a suffix, and appending a random digit string to its current name.
 
     Args:
         ftp: FTP connection object
         old_name: current directory name
         prefix: prefix string to prepend to the directory name
         suffix: suffix string to append to the directory name
+        digits (str): Six-digit random numeric string appended after the suffix to prevent name collisions.
     Returns:
         str: New directory name.
     Raises:
         Exception: If the FTP rename operation fails.
     """
     try:
-        new_name = prefix + old_name + suffix
+        new_name = prefix + old_name + suffix + digits
         ftp.rename(old_name, new_name)
         print(f"Renamed '{old_name}' to '{new_name}'")
         print("-------------------")
@@ -481,12 +495,12 @@ def handle_match_results(ftp: FTP, is_match: bool, temp_dir: str, child_dir_data
     if is_match:
         delete_temp_dir(temp_dir)
         if child_dir_data[HAS_HTM_KEY]:
-            renamed = rename_directory(ftp, child_dir_name, ERROR_HTM_PREFIX, SCRIPT_RAN_SUFFIX)
+            renamed = rename_directory(ftp, child_dir_name, ERROR_HTM_PREFIX, SCRIPT_RAN_SUFFIX, random_six_digit_suffix())
             htm_file_error = f"HTM file detected — renamed to '{renamed}', skipping move to Completed."
             print(htm_file_error)
             send_error_email(htm_file_error)
         else:
-            renamed = rename_directory(ftp, child_dir_name, DELETE_DIR_PREFIX, SCRIPT_RAN_SUFFIX)
+            renamed = rename_directory(ftp, child_dir_name, DELETE_DIR_PREFIX, SCRIPT_RAN_SUFFIX, random_six_digit_suffix())
             move_to_completed(ftp, renamed, COMPLETED_DIR_NAME)
             case_count_run += 1
             print(f"Case count: {case_count_run}")
