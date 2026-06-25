@@ -7,6 +7,7 @@ via the STAC web interface using Selenium WebDriver automation.
 
 # Standard Library Imports
 import re
+import time
 
 # Third-party Imports
 from selenium import webdriver
@@ -41,7 +42,8 @@ CASES_SIDEBAR_BUTTON_CSS_SELECTOR = "[data-menuid='incident']"
 
 # SEARCHING UCN AND RESULTS
 SEARCH_BAR_DROPDOWN_OPTION_CSS_SELECTOR = "button[role='button'][aria-label='select']"
-UCN_SEARCH_BAR_DROPDOWN_OPTION_XPATH = "//li[@role='option']//span[text()='UCN']"
+SEARCH_BAR_DROPDOWN_LISTBOX_ID = "incidentsSearchMainCriteria_listbox"
+UCN_SEARCH_BAR_DROPDOWN_OPTION_XPATH = "//ul[@id='incidentsSearchMainCriteria_listbox' and not(contains(@style,'display: none'))]//span[text()='UCN']"
 SEARCH_BAR_FIELD_ID = "incidentsSearchMainSearchValue"
 SEARCH_BAR_BUTTON_ID = "incidentsSearchMainButton"
 NO_RECORDS_FOUND_CSS_SELECTOR = ".k-grid-norecords-template"
@@ -50,7 +52,7 @@ CASE_NAME_FROM_STAC_UCN_SEARCH = "td[data-original-column-name='Def_Name'] span.
 # ADD IMAGE PAGE
 IMAGES_TAB_OF_CASE_ID = "incidentsTab-tab-3"
 ADD_BUTTON_BAR_OF_IMAGES_ID = "AddNewImagesTab"
-ADD_IMAGE_DROPDOWN_MENU_CSS_SELECTOR = "[data-id='newImage']"
+ADD_IMAGE_NEW_IMAGE_MENU_ITEM_CSS_SELECTOR = "ul#AddNewImagesTab_buttonmenu li[data-id='newImage']"
 
 # ADD IMAGE TYPE DROPDOWN MENU
 SELECT_FILES_BUTTON_CSS_SELECTOR = ".k-upload-button"
@@ -151,9 +153,10 @@ def navigate_to_search(driver: webdriver.Chrome, wait: WebDriverWait) -> tuple:
     Raises:
         TimeoutException: If any navigation element fails to become clickable.
     """
-    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, CASES_SIDEBAR_BUTTON_CSS_SELECTOR))).click() # clicks on cases sidebar
-    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, SEARCH_BAR_DROPDOWN_OPTION_CSS_SELECTOR))).click() # clicks on the dropdown menu
-    wait.until(EC.element_to_be_clickable((By.XPATH, UCN_SEARCH_BAR_DROPDOWN_OPTION_XPATH))).click() # this only waits to see if any one of the options is clickable
+    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, CASES_SIDEBAR_BUTTON_CSS_SELECTOR))).click()
+    wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, SEARCH_BAR_DROPDOWN_OPTION_CSS_SELECTOR))).click()
+    ucn_option = wait.until(EC.element_to_be_clickable((By.XPATH, UCN_SEARCH_BAR_DROPDOWN_OPTION_XPATH)))
+    driver.execute_script("arguments[0].click();", ucn_option)
 
     return driver, wait
 
@@ -208,7 +211,8 @@ def search_by_ucn(driver: webdriver.Chrome, wait: WebDriverWait, ucn_value: str,
     # print(f"DIR name: '{child_dir_name}'")
 
     if is_match:
-        wait.until(EC.element_to_be_clickable((By.ID, IMAGES_TAB_OF_CASE_ID))).click() # Clicks the Images Section Tab.
+        images_tab = wait.until(EC.element_to_be_clickable((By.ID, IMAGES_TAB_OF_CASE_ID)))
+        driver.execute_script("arguments[0].click();", images_tab)
         print("DEFENDANT MATCHES 911 CHILD DIRECTORY NAME")
         print("-------------------")
     else:
@@ -249,9 +253,11 @@ def navigate_to_add_image_dialog(driver: webdriver.Chrome, wait: WebDriverWait) 
 
     try:
         # Finds the 'Image' Tab and Press '+ Add' and Selects 'New Image'
-        wait.until(EC.element_to_be_clickable((By.ID, ADD_BUTTON_BAR_OF_IMAGES_ID))).click()
-        add_image_dropdown_button = driver.find_element(By.CSS_SELECTOR, ADD_IMAGE_DROPDOWN_MENU_CSS_SELECTOR)
-        driver.execute_script("arguments[0].click();", add_image_dropdown_button)
+        time.sleep(1)
+        add_button = wait.until(EC.element_to_be_clickable((By.ID, ADD_BUTTON_BAR_OF_IMAGES_ID)))
+        driver.execute_script("arguments[0].click();", add_button)
+        new_image_item = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, ADD_IMAGE_NEW_IMAGE_MENU_ITEM_CSS_SELECTOR)))
+        driver.execute_script("arguments[0].click();", new_image_item)
     except TimeoutException as IMAGE_TAB_ERROR:
         print(f"Could not locate the Image Tab: {IMAGE_TAB_ERROR}")
         send_error_email(f"Could not locate the Image Tab: {IMAGE_TAB_ERROR}")
@@ -416,6 +422,3 @@ def run_stac_script(universal_case_number: str, file_list_from_dict: list, child
         teardown_browser(driver)
 
     return is_match
-
-# LOOP TESTING
-# run_stac_script("24-00-CJ-0000-000-000", ["C:\\path\\to\\file.mp3"], "LAST FIRST 24-00-CJ-0000-000-000")

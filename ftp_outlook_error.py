@@ -64,7 +64,7 @@ def send_error_email(error_in_body) -> None:
         outlook_app, namespace = connect_to_outlook()
         mail_item = create_mailbox_item(outlook_app, MAIL_ITEM_SUBJECT, error_in_body)
         mail_item.To = EMAIL_TO
-        mail_item.CC = EMAIL_CC
+        # mail_item.CC = EMAIL_CC
         mail_item.Send()
     except Exception as send_error_email_error:
         print(f"Failed to send error email: {send_error_email_error}")
