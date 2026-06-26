@@ -7,7 +7,6 @@ via the STAC web interface using Selenium WebDriver automation.
 
 # Standard Library Imports
 import re
-import time
 
 # Third-party Imports
 from selenium import webdriver
@@ -29,39 +28,35 @@ WEBDRIVER_WAIT_TIMEOUT_SECONDS = 5
 FILE_UPLOAD_WAIT_TIMEOUT_SECONDS = 60
 EXCLUDED_TOKENS = {"AM", "SVP", "AME", "SO", "AMSP", "JLA", "PJLA", "SP", "ALERT", "BKGRDALERT", "CP", "DO", "NOT", "USE", "GANG", "NCP", "NO", "CC", "OSCP", "SPCALERT", "TTP", "VFOSC", "HA"}
 
-# HTML
-#LOGIN
+# browser_login
 LOGIN_DROPDOWN_MENU_ID = 'LoginProvider'
 USERNAME_AND_PASSWORD_DROPDOWN_MENU_VALUE = 'Local'
 USERNAME_FIELD_ID = 'Username'
 PASSWORD_FIELD_ID = 'Password'
 SUBMIT_LOGIN_BUTTON_ID = 'submitLogin'
 
-# CASES SIDEBAR PAGE
+# navigate_to_search
 CASES_SIDEBAR_BUTTON_CSS_SELECTOR = "[data-menuid='incident']"
-
-# SEARCHING UCN AND RESULTS
 SEARCH_BAR_DROPDOWN_OPTION_CSS_SELECTOR = "button[role='button'][aria-label='select']"
 SEARCH_BAR_DROPDOWN_LISTBOX_ID = "incidentsSearchMainCriteria_listbox"
 UCN_SEARCH_BAR_DROPDOWN_OPTION_XPATH = "//ul[@id='incidentsSearchMainCriteria_listbox' and not(contains(@style,'display: none'))]//span[text()='UCN']"
+
+# search_by_ucn
 SEARCH_BAR_FIELD_ID = "incidentsSearchMainSearchValue"
 SEARCH_BAR_BUTTON_ID = "incidentsSearchMainButton"
 NO_RECORDS_FOUND_CSS_SELECTOR = ".k-grid-norecords-template"
 CASE_NAME_FROM_STAC_UCN_SEARCH = "td[data-original-column-name='Def_Name'] span.k-button-text"
-
-# ADD IMAGE PAGE
 IMAGES_TAB_OF_CASE_ID = "incidentsTab-tab-3"
-ADD_BUTTON_BAR_OF_IMAGES_ID = "AddNewImagesTab"
-ADD_IMAGE_NEW_IMAGE_MENU_ITEM_CSS_SELECTOR = "ul#AddNewImagesTab_buttonmenu li[data-id='newImage']"
 
-# ADD IMAGE TYPE DROPDOWN MENU
-SELECT_FILES_BUTTON_CSS_SELECTOR = ".k-upload-button"
+# navigate_to_add_image_and_upload  (v2 - replaces navigate_to_add_image_dialog + upload_files)
+IMAGES_TAB_CONTENT_PANEL_ID = "incidentsTab-3"
+IMAGES_TAB_DROPZONE_PANEL_CSS_SELECTOR = ".pagesImagesIndex-upload-drop-zone-element"
+TAB_DROPZONE_FILE_INPUT_CSS_SELECTOR = "input[id^='cipFileUpload_pagesImagesIndex-upload'][multiple]:not([webkitdirectory])"
+
+# popup - unchanged
 IMAGE_SUB_TYPE_FIND_BUTTON_ID = "image_sub_typeFindButton"
-IMAGE_SUB_TYPE_ROW_XPATH = "//span[text()='911AUDIO']"
+IMAGE_SUB_TYPE_ROW_XPATH = "//tr[.//span[text()='DISCOVERY'] and .//span[text()='911AUDIO']]"
 SELECT_BUTTON_XPATH = "//span[text()='Select']/parent::button"
-
-# UPLOADING AND SAVING FILES
-ADD_IMAGE_UPLOAD_DROPBOX_CSS_SELECTOR = "input[id^='cipFileUpload_TelerikUpload']"
 FILE_UPLOAD_SUCCESS_XPATH = "//span[contains(@class,'k-file-validation-message') and text()='File(s) uploaded successfully.']"
 SAVE_IMAGE_BUTTON = "SaveImage"
 
@@ -221,48 +216,24 @@ def search_by_ucn(driver: webdriver.Chrome, wait: WebDriverWait, ucn_value: str,
 
     return (driver, wait), is_match
 
-def wait_for_all_uploads(wait: WebDriverWait, expected_count: int) -> bool:
+def select_image_subtype(driver: webdriver.Chrome, wait: WebDriverWait) -> None:
     """
-    Waits until the number of successfully uploaded files matches expected count.
+    Selects the 911AUDIO subtype from the image type/subtype matrix dialog.
 
-    Args:
-        wait (WebDriverWait): WebDriverWait object.
-        expected_count (int): Number of files expected to finish uploading.
-
-    Returns:
-        bool: True when all files are confirmed uploaded.
-    """
-    wait.until(lambda d: len(d.find_elements(By.XPATH, FILE_UPLOAD_SUCCESS_XPATH))  >= expected_count)
-    print(f"{expected_count}/{expected_count} files uploaded successfully.")
-    return True
-
-def navigate_to_add_image_dialog(driver: webdriver.Chrome, wait: WebDriverWait) -> tuple:
-    """
-    Navigates to the Add Image dialog and selects the 911AUDIO type and subtype.
+    Clicks the subtype find button to open the matrix, selects the 911AUDIO row,
+    and confirms the selection by clicking the Select button.
 
     Args:
         driver (WebDriver): Selenium Chrome driver.
         wait (WebDriverWait): WebDriverWait object for explicit waits.
 
     Returns:
-        tuple (WebDriver, WebDriverWait): Unchanged driver and wait for chaining.
+        None
 
     Raises:
-        TimeoutException: If any dialog element fails to become visible or clickable.
+        TimeoutException: If the find button, 911AUDIO row, or Select button
+                          fail to become visible or clickable.
     """
-
-    try:
-        # Finds the 'Image' Tab and Press '+ Add' and Selects 'New Image'
-        time.sleep(1)
-        add_button = wait.until(EC.element_to_be_clickable((By.ID, ADD_BUTTON_BAR_OF_IMAGES_ID)))
-        driver.execute_script("arguments[0].click();", add_button)
-        new_image_item = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, ADD_IMAGE_NEW_IMAGE_MENU_ITEM_CSS_SELECTOR)))
-        driver.execute_script("arguments[0].click();", new_image_item)
-    except TimeoutException as IMAGE_TAB_ERROR:
-        print(f"Could not locate the Image Tab: {IMAGE_TAB_ERROR}")
-        send_error_email(f"Could not locate the Image Tab: {IMAGE_TAB_ERROR}")
-        raise
-
     try:
         # Finding the Correct Type and Subtype
         wait.until(EC.visibility_of_element_located((By.ID, IMAGE_SUB_TYPE_FIND_BUTTON_ID))) # Waits for the "add" button to be clickable then clicks
@@ -291,11 +262,29 @@ def navigate_to_add_image_dialog(driver: webdriver.Chrome, wait: WebDriverWait) 
         send_error_email(f"Could not locate the Select Button: {SELECT_BUTTON_ERROR}")
         raise
 
-    return driver, wait
-
-def upload_files(driver: webdriver.Chrome, wait: WebDriverWait, file_list: list) -> tuple:
+def wait_for_all_uploads(wait: WebDriverWait, expected_count: int) -> bool:
     """
-    Sends local file paths to the hidden file input and waits for all uploads to complete.
+    Waits until the number of successfully uploaded files matches expected count.
+
+    Args:
+        wait (WebDriverWait): WebDriverWait object.
+        expected_count (int): Number of files expected to finish uploading.
+
+    Returns:
+        bool: True when all files are confirmed uploaded.
+    """
+    wait.until(lambda d: len(d.find_elements(By.XPATH, FILE_UPLOAD_SUCCESS_XPATH))  >= expected_count)
+    print(f"{expected_count}/{expected_count} files uploaded successfully.")
+    return True
+
+def navigate_to_add_image_and_upload(driver: webdriver.Chrome, wait: WebDriverWait, file_list: list) -> tuple:
+    """
+    Sends files to the Images tab dropzone, waits for the upload to complete,
+    then selects the correct image subtype from the popup dialog.
+
+    Locates the hidden multi-file input on the Images tab, unhides it, sends
+    all file paths in a single operation, waits for all uploads to confirm
+    success, then delegates subtype selection to select_image_subtype.
 
     Args:
         driver (WebDriver): Selenium Chrome driver.
@@ -306,11 +295,12 @@ def upload_files(driver: webdriver.Chrome, wait: WebDriverWait, file_list: list)
         tuple (WebDriver, WebDriverWait): Unchanged driver and wait for chaining.
 
     Raises:
-        TimeoutException: If the file input is not found or uploads do not complete.
+        TimeoutException: If the file input is not found, uploads do not complete,
+                          or subtype selection fails.
     """
-    # Send file path directly to hidden input — bypasses OS file dialog entirely
     try:
-        file_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, ADD_IMAGE_UPLOAD_DROPBOX_CSS_SELECTOR)))
+        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, IMAGES_TAB_DROPZONE_PANEL_CSS_SELECTOR)))
+        file_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, TAB_DROPZONE_FILE_INPUT_CSS_SELECTOR)))
         driver.execute_script("arguments[0].removeAttribute('class')", file_input)  # unhide the input
     except TimeoutException as DROPBOX_TIMEOUT:
         print(f"Could not find Dropbox area: {DROPBOX_TIMEOUT}")
@@ -326,6 +316,7 @@ def upload_files(driver: webdriver.Chrome, wait: WebDriverWait, file_list: list)
         send_error_email(f"Took to long to upload in dropbox: {DROPBOX_UPLOAD_TIMEOUT}")
         raise
 
+    select_image_subtype(driver, wait)
     return driver, wait
 
 def save_and_confirm(driver: webdriver.Chrome) -> None:
@@ -378,8 +369,7 @@ def add_image(driver: webdriver.Chrome, wait: WebDriverWait, file_list: list) ->
     Returns:
         None
     """
-    navigate_to_add_image_dialog(driver, wait)
-    upload_files(driver, wait, file_list)
+    navigate_to_add_image_and_upload(driver, wait, file_list)
     save_and_confirm(driver)
 
     return None
