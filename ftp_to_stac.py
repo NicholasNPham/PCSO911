@@ -24,7 +24,7 @@ from key import WEBSITE, STAC3_USERNAME, STAC3_PASSWORD
 
 # CONSTANTS
 PAUSE_BETWEEN_ACTIONS_SECONDS = 1
-WEBDRIVER_WAIT_TIMEOUT_SECONDS = 5
+WEBDRIVER_WAIT_TIMEOUT_SECONDS = 10
 FILE_UPLOAD_WAIT_TIMEOUT_SECONDS = 60
 EXCLUDED_TOKENS = {"AM", "SVP", "AME", "SO", "AMSP", "JLA", "PJLA", "SP", "ALERT", "BKGRDALERT", "CP", "DO", "NOT", "USE", "GANG", "NCP", "NO", "CC", "OSCP", "SPCALERT", "TTP", "VFOSC", "HA"}
 
@@ -50,6 +50,7 @@ IMAGES_TAB_OF_CASE_ID = "incidentsTab-tab-3"
 
 # navigate_to_add_image_and_upload  (v2 - replaces navigate_to_add_image_dialog + upload_files)
 IMAGES_TAB_CONTENT_PANEL_ID = "incidentsTab-3"
+IMAGES_TAB_PREVIEW_IFRAME_CSS_SELECTOR = "#imageTabPageSplitterRightPane iframe.iframe-document"
 IMAGES_TAB_DROPZONE_PANEL_CSS_SELECTOR = ".pagesImagesIndex-upload-drop-zone-element"
 TAB_DROPZONE_FILE_INPUT_CSS_SELECTOR = "input[id^='cipFileUpload_pagesImagesIndex-upload'][multiple]:not([webkitdirectory])"
 
@@ -372,7 +373,18 @@ def navigate_to_add_image_and_upload(driver: webdriver.Chrome, wait: WebDriverWa
                           or subtype selection fails.
     """
     try:
-        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, IMAGES_TAB_DROPZONE_PANEL_CSS_SELECTOR)))
+        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, IMAGES_TAB_DROPZONE_PANEL_CSS_SELECTOR))) # looks for the dropzone panel to prep to add files
+
+        """
+        THE LINE BELOW THIS DOCSTRING
+        - The whole thing is just 'wait.until(some_condition)'
+        
+        1. d.find_element(...).get_attribute("src") -- get the iframe's src
+        2. (lambda src: src is not None and "..." in src)(...) -- immediately check it
+        3. lambda d: (...) -- wrap the whole thing so wait.until can call it repeatedly
+        """
+        wait.until(lambda d: (lambda src: src is not None and "/pdfjs/web/viewer.html?file=" in src)(d.find_element(By.CSS_SELECTOR, IMAGES_TAB_PREVIEW_IFRAME_CSS_SELECTOR).get_attribute("src")))
+
         file_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, TAB_DROPZONE_FILE_INPUT_CSS_SELECTOR)))
         driver.execute_script("arguments[0].removeAttribute('class')", file_input)  # unhide the input
     except TimeoutException as DROPBOX_TIMEOUT:
