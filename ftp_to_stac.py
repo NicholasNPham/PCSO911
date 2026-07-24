@@ -7,6 +7,7 @@ via the STAC web interface using Selenium WebDriver automation.
 
 # Standard Library Imports
 import re
+import time
 
 # Third-party Imports
 from selenium import webdriver
@@ -509,6 +510,7 @@ def run_stac_script(universal_case_number: str, file_list_from_dict: list, child
         driver, wait = navigate_to_search(driver, wait)
         (driver, wait), is_match = search_by_ucn(driver, wait, universal_case_number, child_dir_name)
         if is_match:
+            time.sleep(1)
             add_image(driver, wait, file_list_from_dict)
     finally:
         teardown_browser(driver)
