@@ -126,14 +126,18 @@ def run_pcso911_script() -> None:
 
 if __name__ == "__main__":
 
-    # script_last_ran_date = None
-    # while True:
-    #     if is_scheduled_run_time() and script_last_ran_date != datetime.date.today():
-    #         run_pcso911_script()
-    #         script_last_ran_date = datetime.date.today()
-    #     else:
-    #         print(datetime.datetime.now().strftime("%H:%M"))
-    #         time.sleep(SLEEP_INTERVAL_SECONDS)
+    print("1. Run While Loop")
+    print("2. Run 1 Loop")
+    option = input("enter option: ")
 
-    # TESTING SCRIPT FUNCTION CALL
-    run_pcso911_script()
+    if option == "1":
+        script_last_ran_date = None
+        while True:
+            if is_scheduled_run_time() and script_last_ran_date != datetime.date.today():
+                run_pcso911_script()
+                script_last_ran_date = datetime.date.today()
+            else:
+                print(datetime.datetime.now().strftime("%H:%M"))
+                time.sleep(SLEEP_INTERVAL_SECONDS)
+    elif option == "2":
+        run_pcso911_script()
