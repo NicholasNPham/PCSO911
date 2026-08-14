@@ -61,7 +61,6 @@ def change_directory_911_phone_calls(absolute_path: str, ftp: FTP) -> FTP:
     """
     try:
         ftp.cwd(absolute_path)
-        print("Changed Directory to PCSO911")
         return ftp
     except ftplib.error_perm as CHANGE_DIRECTORY_ERROR:
         ftp.quit()
@@ -82,7 +81,6 @@ def is_valid_file_size(filename: str, ftp: FTP) -> bool:
             return True
         else:
             print(f"File '{filename}' is 0 bytes. Skipping.")
-            print("-------------------")
             return False
     except ftplib.error_perm as NO_MEGABYTES_ERROR:
         print(f"Failed to get size of file: {NO_MEGABYTES_ERROR}")
@@ -118,11 +116,9 @@ def rename_directory(ftp: FTP, old_name: str, prefix: str, suffix: str, digits: 
         new_name = prefix + old_name + suffix + digits
         ftp.rename(old_name, new_name)
         print(f"Renamed '{old_name}' to '{new_name}'")
-        print("-------------------")
         return new_name
     except ftplib.error_perm as FAILED_RENAME_ERROR:
         print(f"Failed to rename '{old_name}': {FAILED_RENAME_ERROR}")
-        print("-------------------")
         raise Exception(f"Failed to rename '{old_name}': {FAILED_RENAME_ERROR}")
 
 def move_to_completed(ftp: FTP, dir_name: str, completed_folder: str) -> None:
@@ -139,11 +135,9 @@ def move_to_completed(ftp: FTP, dir_name: str, completed_folder: str) -> None:
     try:
         ftp.rename(dir_name, f"{completed_folder}{FTP_PATH_SEPARATOR}{dir_name}")
         print(f"Moved '{dir_name}' to '{completed_folder}{FTP_PATH_SEPARATOR}{dir_name}'")
-        print("-------------------")
     except ftplib.all_errors as MOVE_ERROR:
         print(f"Failed to move '{dir_name}' : {MOVE_ERROR}")
         send_error_email(f"Failed to move '{dir_name}' : {MOVE_ERROR}")
-        print("-------------------")
 
 def download_files_to_temp(ftp: FTP, file_list: list) -> tuple:
     """
@@ -170,7 +164,6 @@ def download_files_to_temp(ftp: FTP, file_list: list) -> tuple:
     except (ftplib.all_errors, OSError) as DOWNLOAD_ERROR:
         send_error_email(f"Failed to download files to Network Drive: {DOWNLOAD_ERROR}")
         raise
-    print("-------------------")
 
     return TEMP_DIR, local_file_path
 
@@ -187,7 +180,6 @@ def delete_temp_dir(temp_dir: str) -> None:
     if os.path.exists(temp_dir):
         shutil.rmtree(temp_dir)
         print(f"Deleted temp directory: {temp_dir}")
-        print("-------------------")
 
 def collect_directory_contents(ftp: FTP, dir_name: str) -> dict:
     """

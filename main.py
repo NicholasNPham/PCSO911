@@ -127,8 +127,8 @@ def run_pcso911_script() -> None:
 if __name__ == "__main__":
 
     print("1. Run While Loop")
-    print("2. Run 1 Instance")
-    option = input("enter option:")
+    print("2. Run 1 Loop")
+    option = input("enter option: ")
 
     if option == "1":
         script_last_ran_date = None

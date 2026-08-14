@@ -147,11 +147,6 @@ def build_directory_manifest(ftp: FTP) -> dict:
             "files": contents["files"],  # pull from contents
         }
 
-    # Uncomment to debug manifest contents
-    # print("-------------------------")
-    # print(manifest)
-    # print("-------------------------")
-
     return manifest
 
 def process_single_case(ftp: FTP, child_dir_name: str, child_dir_data: dict) -> tuple:

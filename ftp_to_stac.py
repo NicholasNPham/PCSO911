@@ -88,10 +88,6 @@ def names_match(stac_name: str, child_dir_name: str) -> bool:
     stac_tokens = set(w for w in re.findall(r'[a-zA-Z]+', stac_name.upper()) if w not in EXCLUDED_TOKENS)
     dir_tokens = set(w for w in re.findall(r'[a-zA-Z]+', child_dir_name.upper()) if w not in EXCLUDED_TOKENS)
 
-    # Uncomment to Test
-    # print(f"STAC tokens: {stac_tokens}")
-    # print(f"DIR tokens: {dir_tokens}")
-
     return stac_tokens.issubset(dir_tokens) or dir_tokens.issubset(stac_tokens)
 
 # FUNCTIONS
@@ -256,7 +252,6 @@ def search_by_ucn(driver: webdriver.Chrome, wait: WebDriverWait, ucn_value: str,
         no_records = driver.find_elements(By.CSS_SELECTOR, NO_RECORDS_FOUND_CSS_SELECTOR) # If "No Records Found" is "Truthy" print and return False.
         if no_records:
             print("NO RECORDS FOUND IN STAC")
-            print("-------------------")
             return (driver, wait), False
     except TimeoutException as SEARCH_RESULTS_TIMEOUT:
         print(f"Search results did not load: {SEARCH_RESULTS_TIMEOUT}")
@@ -270,15 +265,9 @@ def search_by_ucn(driver: webdriver.Chrome, wait: WebDriverWait, ucn_value: str,
             images_tab = wait.until(EC.element_to_be_clickable((By.ID, IMAGES_TAB_OF_CASE_ID)))
             driver.execute_script("arguments[0].click();", images_tab)
             print("DEFENDANT MATCHES 911 CHILD DIRECTORY NAME")
-            print("-------------------")
-
-            # Uncomment to Test
-            # print(f"STAC name: '{stac_case_name}'")
-            # print(f"DIR name: '{child_dir_name}'")
 
         else:
             print("DEFENDANT DOES NOT MATCH 911 CHILD DIRECTORY NAME")
-            print("-------------------")
             return (driver, wait), is_match
     except TimeoutException as SEARCH_RESULTS_AND_MATCH_TIMEOUT:
         print(f"Could not locate the STAC case name or could not compare stac_case_name to child_dir_name: {SEARCH_RESULTS_AND_MATCH_TIMEOUT}")
@@ -327,7 +316,6 @@ def select_image_subtype(driver: webdriver.Chrome, wait: WebDriverWait) -> None:
         time.sleep(1)
         row = wait.until(EC.visibility_of_element_located((By.XPATH, IMAGE_SUB_TYPE_ROW_XPATH))) # looks for row with type: "DISCOVERY" and subtype "911AUDIO"
         driver.execute_script("arguments[0].click();", row) # select the type and subtype row
-        print("FOUND THE CORRECT TYPE AND SUBTYPE")
     except TimeoutException as SELECT_SUBTYPE_ERROR:
         print(f"Could not locate the 911AUDIO row: {SELECT_SUBTYPE_ERROR}")
         send_error_email(f"Could not locate the 911AUDIO row: {SELECT_SUBTYPE_ERROR}")
@@ -359,12 +347,19 @@ def wait_for_all_uploads(wait: WebDriverWait, expected_count: int) -> bool:
 
 def remove_preview_iframe(driver: webdriver.Chrome) -> None:
     """
-    [you write this docstring, or tell me to and I will]
-    """
-    driver.execute_script(
-        "let f = document.querySelector(arguments[0]); if (f) { f.remove(); }",
-        IMAGES_TAB_PREVIEW_IFRAME_CSS_SELECTOR
-    )
+        Removes the PDF.js preview iframe from the DOM after upload confirms success.
+
+        Works around a STAC application bug where the preview iframe's onResize/scroll
+        handler leaks memory across every document viewed in the case. Must be called
+        immediately after wait_for_all_uploads succeeds and before select_image_subtype.
+
+        Args:
+            driver (WebDriver): Selenium Chrome driver.
+
+        Returns:
+            None
+        """
+    driver.execute_script("let f = document.querySelector(arguments[0]); if (f) { f.remove(); }", IMAGES_TAB_PREVIEW_IFRAME_CSS_SELECTOR)
 
 def navigate_to_add_image_and_upload(driver: webdriver.Chrome, wait: WebDriverWait, file_list: list) -> tuple:
     """
@@ -457,9 +452,7 @@ def save_and_confirm(driver: webdriver.Chrome) -> None:
     upload_wait = WebDriverWait(driver, FILE_UPLOAD_WAIT_TIMEOUT_SECONDS)
 
     try:
-        upload_wait.until(lambda d: d.execute_script(
-            f"return $(\"{IMAGE_SUB_TYPE_INPUT_ID}\").data('kendoDropDownList').value()") == MATRIX_SEARCH_TERM)
-        print("SUBTYPE HAS BEEN RENDERED BACKSIDE")
+        upload_wait.until(lambda d: d.execute_script(f"return $(\"{IMAGE_SUB_TYPE_INPUT_ID}\").data('kendoDropDownList').value()") == MATRIX_SEARCH_TERM)
     except TimeoutException as SUBTYPE_VALUE_TIMEOUT:
         print(f"Subtype value did not populate before save: {SUBTYPE_VALUE_TIMEOUT}")
         send_error_email(f"Subtype value did not populate before save: {SUBTYPE_VALUE_TIMEOUT}")

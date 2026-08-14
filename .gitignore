@@ -8,4 +8,4 @@ __pycache__/
 log_*.txt
 .env
 .ai
-.idea
+.idea/
