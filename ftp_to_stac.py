@@ -383,7 +383,7 @@ def navigate_to_add_image_and_upload(driver: webdriver.Chrome, wait: WebDriverWa
                           or subtype selection fails.
     """
 
-    time.sleep(5)
+    # time.sleep(5)
 
     try:
         FIRST_NON_SELECTED_IMAGE_TILE_CSS_SELECTOR = "#image-manager-listview-name .cipimage:not(.k-selected)"
