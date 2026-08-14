@@ -56,6 +56,7 @@ IMAGES_TAB_DROPZONE_PANEL_CSS_SELECTOR = ".pagesImagesIndex-upload-drop-zone-ele
 TAB_DROPZONE_FILE_INPUT_CSS_SELECTOR = "input[id^='cipFileUpload_pagesImagesIndex-upload'][multiple]:not([webkitdirectory])"
 
 # popup
+KENDO_INTERVAL_RECOVERY_PAUSE_SECONDS = 1
 IMAGE_SUB_TYPE_FIND_BUTTON_CSS_SELECTOR = ".c-button-find-type-subtype"
 IMAGE_SUB_TYPE_ROW_XPATH = "//tr[.//span[text()='DISCOVERY'] and .//span[text()='911AUDIO']]"
 MATRIX_SEARCH_INPUT_CSS_SELECTOR = "div#codeSearchDialog input.k-input-inner[placeholder='Search...']"
@@ -295,7 +296,6 @@ def select_image_subtype(driver: webdriver.Chrome, wait: WebDriverWait) -> None:
                           or Select button fail to become visible or clickable.
     """
     try:
-        time.sleep(1)
         find_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, IMAGE_SUB_TYPE_FIND_BUTTON_CSS_SELECTOR))) # looking for the subtype magnifying button
         driver.execute_script("arguments[0].click();", find_button) # clicks the subtype magnifying button
     except TimeoutException as SUBTYPE_LIST_ERROR:
@@ -304,7 +304,6 @@ def select_image_subtype(driver: webdriver.Chrome, wait: WebDriverWait) -> None:
         raise
 
     try:
-        time.sleep(1)
         search_box = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, MATRIX_SEARCH_INPUT_CSS_SELECTOR))) # looks for the search bar
         search_box.send_keys(MATRIX_SEARCH_TERM) # enters the "911AUDIO" in the search bar
     except TimeoutException as MATRIX_SEARCH_ERROR:
@@ -313,7 +312,6 @@ def select_image_subtype(driver: webdriver.Chrome, wait: WebDriverWait) -> None:
         raise
 
     try:
-        time.sleep(1)
         row = wait.until(EC.visibility_of_element_located((By.XPATH, IMAGE_SUB_TYPE_ROW_XPATH))) # looks for row with type: "DISCOVERY" and subtype "911AUDIO"
         driver.execute_script("arguments[0].click();", row) # select the type and subtype row
     except TimeoutException as SELECT_SUBTYPE_ERROR:
@@ -322,7 +320,7 @@ def select_image_subtype(driver: webdriver.Chrome, wait: WebDriverWait) -> None:
         raise
 
     try:
-        time.sleep(1)
+        time.sleep(KENDO_INTERVAL_RECOVERY_PAUSE_SECONDS) # This is necessary to not overload the kendo popup it must wait
         select_btn = wait.until(EC.element_to_be_clickable((By.ID, SELECT_BUTTON_ID))) # finds the blue "select" button
         driver.execute_script("arguments[0].click();", select_btn) # clicks on that blue "select" button
     except TimeoutException as SELECT_BUTTON_ERROR:
