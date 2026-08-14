@@ -56,13 +56,13 @@ IMAGES_TAB_DROPZONE_PANEL_CSS_SELECTOR = ".pagesImagesIndex-upload-drop-zone-ele
 TAB_DROPZONE_FILE_INPUT_CSS_SELECTOR = "input[id^='cipFileUpload_pagesImagesIndex-upload'][multiple]:not([webkitdirectory])"
 
 # popup
-IMAGE_SUB_TYPE_FIND_BUTTON_ID = "image_sub_typeFindButton"
+IMAGE_SUB_TYPE_FIND_BUTTON_CSS_SELECTOR = ".c-button-find-type-subtype"
 IMAGE_SUB_TYPE_ROW_XPATH = "//tr[.//span[text()='DISCOVERY'] and .//span[text()='911AUDIO']]"
 MATRIX_SEARCH_INPUT_CSS_SELECTOR = "div#codeSearchDialog input.k-input-inner[placeholder='Search...']"
 SELECT_BUTTON_ID = "SelectCodeAndSubCode"
 MATRIX_SEARCH_TERM = "911AUDIO"
 FILE_UPLOAD_SUCCESS_XPATH = "//span[contains(@class,'k-file-validation-message') and text()='File(s) uploaded successfully.']"
-IMAGE_SUB_TYPE_INPUT_ID = "customFormItem_3220"
+IMAGE_SUB_TYPE_INPUT_ID = "input[name='image_sub_type']"
 SAVE_IMAGE_BUTTON = "SaveImage"
 
 # CONFIRMATION OF SAVE
@@ -191,7 +191,8 @@ def navigate_to_search(driver: webdriver.Chrome, wait: WebDriverWait) -> tuple:
         raise
 
     try:
-        wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, SEARCH_BAR_DROPDOWN_OPTION_CSS_SELECTOR))).click() # looks for the search type dropdown menu and clicks
+        dropdown_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, SEARCH_BAR_DROPDOWN_OPTION_CSS_SELECTOR)))
+        driver.execute_script("arguments[0].click();", dropdown_button)
     except TimeoutException as SEARCH_BAR_DROPDOWN_OPTION_CSS_TIMEOUT:
         print(f"Could not find the search dropdown button option: {SEARCH_BAR_DROPDOWN_OPTION_CSS_TIMEOUT}")
         send_error_email(f"Could not find the search dropdown button option: {SEARCH_BAR_DROPDOWN_OPTION_CSS_TIMEOUT}")
@@ -305,7 +306,8 @@ def select_image_subtype(driver: webdriver.Chrome, wait: WebDriverWait) -> None:
                           or Select button fail to become visible or clickable.
     """
     try:
-        find_button = wait.until(EC.element_to_be_clickable((By.ID, IMAGE_SUB_TYPE_FIND_BUTTON_ID))) # looking for the subtype magnifying button
+        time.sleep(1)
+        find_button = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, IMAGE_SUB_TYPE_FIND_BUTTON_CSS_SELECTOR))) # looking for the subtype magnifying button
         driver.execute_script("arguments[0].click();", find_button) # clicks the subtype magnifying button
     except TimeoutException as SUBTYPE_LIST_ERROR:
         print(f"Could not locate the Subtype Find Button: {SUBTYPE_LIST_ERROR}")
@@ -313,6 +315,7 @@ def select_image_subtype(driver: webdriver.Chrome, wait: WebDriverWait) -> None:
         raise
 
     try:
+        time.sleep(1)
         search_box = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, MATRIX_SEARCH_INPUT_CSS_SELECTOR))) # looks for the search bar
         search_box.send_keys(MATRIX_SEARCH_TERM) # enters the "911AUDIO" in the search bar
     except TimeoutException as MATRIX_SEARCH_ERROR:
@@ -321,6 +324,7 @@ def select_image_subtype(driver: webdriver.Chrome, wait: WebDriverWait) -> None:
         raise
 
     try:
+        time.sleep(1)
         row = wait.until(EC.visibility_of_element_located((By.XPATH, IMAGE_SUB_TYPE_ROW_XPATH))) # looks for row with type: "DISCOVERY" and subtype "911AUDIO"
         driver.execute_script("arguments[0].click();", row) # select the type and subtype row
         print("FOUND THE CORRECT TYPE AND SUBTYPE")
@@ -330,6 +334,7 @@ def select_image_subtype(driver: webdriver.Chrome, wait: WebDriverWait) -> None:
         raise
 
     try:
+        time.sleep(1)
         select_btn = wait.until(EC.element_to_be_clickable((By.ID, SELECT_BUTTON_ID))) # finds the blue "select" button
         driver.execute_script("arguments[0].click();", select_btn) # clicks on that blue "select" button
     except TimeoutException as SELECT_BUTTON_ERROR:
@@ -352,6 +357,15 @@ def wait_for_all_uploads(wait: WebDriverWait, expected_count: int) -> bool:
     print(f"{expected_count}/{expected_count} files uploaded successfully.")
     return True
 
+def remove_preview_iframe(driver: webdriver.Chrome) -> None:
+    """
+    [you write this docstring, or tell me to and I will]
+    """
+    driver.execute_script(
+        "let f = document.querySelector(arguments[0]); if (f) { f.remove(); }",
+        IMAGES_TAB_PREVIEW_IFRAME_CSS_SELECTOR
+    )
+
 def navigate_to_add_image_and_upload(driver: webdriver.Chrome, wait: WebDriverWait, file_list: list) -> tuple:
     """
     Sends files to the Images tab dropzone, waits for the upload to complete,
@@ -373,24 +387,40 @@ def navigate_to_add_image_and_upload(driver: webdriver.Chrome, wait: WebDriverWa
         TimeoutException: If the file input is not found, uploads do not complete,
                           or subtype selection fails.
     """
+
+    time.sleep(5)
+
     try:
-        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, IMAGES_TAB_DROPZONE_PANEL_CSS_SELECTOR))) # looks for the dropzone panel to prep to add files
+        FIRST_NON_SELECTED_IMAGE_TILE_CSS_SELECTOR = "#image-manager-listview-name .cipimage:not(.k-selected)"
+        other_tile = wait.until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, FIRST_NON_SELECTED_IMAGE_TILE_CSS_SELECTOR)))
+        driver.execute_script("arguments[0].click();", other_tile)
+    except TimeoutException as OTHER_TILE_TIMEOUT:
+        print(f"Could not locate a non-selected tile to trigger selection change: {OTHER_TILE_TIMEOUT}")
+        send_error_email(f"Could not locate a non-selected tile to trigger selection change: {OTHER_TILE_TIMEOUT}")
+        raise
 
-        """
-        THE LINE BELOW THIS DOCSTRING
-        - The whole thing is just 'wait.until(some_condition)'
-        
-        1. d.find_element(...).get_attribute("src") -- get the iframe's src
-        2. (lambda src: src is not None and "..." in src)(...) -- immediately check it
-        3. lambda d: (...) -- wrap the whole thing so wait.until can call it repeatedly
-        """
-        wait.until(lambda d: (lambda src: src is not None and "/pdfjs/web/viewer.html?file=" in src)(d.find_element(By.CSS_SELECTOR, IMAGES_TAB_PREVIEW_IFRAME_CSS_SELECTOR).get_attribute("src")))
+    try:
+        wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, IMAGES_TAB_DROPZONE_PANEL_CSS_SELECTOR)))
+    except TimeoutException as DROPZONE_PANEL_TIMEOUT:
+        print(f"Could not find the dropzone panel: {DROPZONE_PANEL_TIMEOUT}")
+        send_error_email(f"Could not find the dropzone panel: {DROPZONE_PANEL_TIMEOUT}")
+        raise
 
+    try:
+        wait.until(lambda d: (lambda src: src is not None and "web/viewer.html?file=" in src)(
+            d.find_element(By.CSS_SELECTOR, IMAGES_TAB_PREVIEW_IFRAME_CSS_SELECTOR).get_attribute("src")))
+    except TimeoutException as PREVIEW_IFRAME_TIMEOUT:
+        print(f"Preview iframe src did not populate: {PREVIEW_IFRAME_TIMEOUT}")
+        send_error_email(f"Preview iframe src did not populate: {PREVIEW_IFRAME_TIMEOUT}")
+        raise
+
+    try:
         file_input = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, TAB_DROPZONE_FILE_INPUT_CSS_SELECTOR)))
         driver.execute_script("arguments[0].removeAttribute('class')", file_input)  # unhide the input
-    except TimeoutException as DROPBOX_TIMEOUT:
-        print(f"Could not find Dropbox area: {DROPBOX_TIMEOUT}")
-        send_error_email(f"Could not find Dropbox area: {DROPBOX_TIMEOUT}")
+    except TimeoutException as FILE_INPUT_TIMEOUT:
+        print(f"Could not find the hidden file input: {FILE_INPUT_TIMEOUT}")
+        send_error_email(f"Could not find the hidden file input: {FILE_INPUT_TIMEOUT}")
         raise
 
     # Uploading Files to the DropBox
@@ -398,6 +428,7 @@ def navigate_to_add_image_and_upload(driver: webdriver.Chrome, wait: WebDriverWa
         upload_wait = WebDriverWait(driver, FILE_UPLOAD_WAIT_TIMEOUT_SECONDS)
         file_input.send_keys("\n".join(file_list))
         wait_for_all_uploads(upload_wait, len(file_list))
+        remove_preview_iframe(driver)
     except TimeoutException as DROPBOX_UPLOAD_TIMEOUT:
         print(f"Took to long to upload in dropbox: {DROPBOX_UPLOAD_TIMEOUT}")
         send_error_email(f"Took to long to upload in dropbox: {DROPBOX_UPLOAD_TIMEOUT}")
@@ -426,7 +457,8 @@ def save_and_confirm(driver: webdriver.Chrome) -> None:
     upload_wait = WebDriverWait(driver, FILE_UPLOAD_WAIT_TIMEOUT_SECONDS)
 
     try:
-        upload_wait.until(lambda d: d.find_element(By.ID, IMAGE_SUB_TYPE_INPUT_ID).get_attribute("value") == MATRIX_SEARCH_TERM)
+        upload_wait.until(lambda d: d.execute_script(
+            f"return $(\"{IMAGE_SUB_TYPE_INPUT_ID}\").data('kendoDropDownList').value()") == MATRIX_SEARCH_TERM)
         print("SUBTYPE HAS BEEN RENDERED BACKSIDE")
     except TimeoutException as SUBTYPE_VALUE_TIMEOUT:
         print(f"Subtype value did not populate before save: {SUBTYPE_VALUE_TIMEOUT}")
@@ -434,8 +466,7 @@ def save_and_confirm(driver: webdriver.Chrome) -> None:
         raise
 
     try:
-        save_btn = upload_wait.until(EC.element_to_be_clickable((By.ID, SAVE_IMAGE_BUTTON)))
-        driver.execute_script("arguments[0].click();", save_btn)
+        upload_wait.until(EC.element_to_be_clickable((By.ID, SAVE_IMAGE_BUTTON))).click()
     except TimeoutException as SAVE_BUTTON_TIMEOUT:
         print(f"Could not press the save button: {SAVE_BUTTON_TIMEOUT}")
         send_error_email(f"Could not press the save button: {SAVE_BUTTON_TIMEOUT}")
