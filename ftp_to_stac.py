@@ -382,9 +382,6 @@ def navigate_to_add_image_and_upload(driver: webdriver.Chrome, wait: WebDriverWa
         TimeoutException: If the file input is not found, uploads do not complete,
                           or subtype selection fails.
     """
-
-    # time.sleep(5)
-
     try:
         FIRST_NON_SELECTED_IMAGE_TILE_CSS_SELECTOR = "#image-manager-listview-name .cipimage:not(.k-selected)"
         other_tile = wait.until(
@@ -534,7 +531,6 @@ def run_stac_script(universal_case_number: str, file_list_from_dict: list, child
         driver, wait = navigate_to_search(driver, wait)
         (driver, wait), is_match = search_by_ucn(driver, wait, universal_case_number, child_dir_name)
         if is_match:
-            time.sleep(1)
             add_image(driver, wait, file_list_from_dict)
     finally:
         teardown_browser(driver)
