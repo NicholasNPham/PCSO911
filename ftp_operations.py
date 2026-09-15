@@ -12,7 +12,7 @@ from key import UNIVERSAL_CASE_NUMBER_PATTERN
 RETURN_TO_PARENT_DIRECTORY = '..'
 COMPLETED_DIR_NAME = "__Completed"
 ERROR_HTM_PREFIX = '_ERROR_HTM '
-DELETE_DIR_PREFIX = '_DELETE '
+DELETE_DIR_PREFIX = '_DELETE'
 SCRIPT_RAN_SUFFIX = ' _SCRIPT '
 HAS_HTM_KEY = "has_htm"
 
@@ -78,7 +78,7 @@ def should_skip_directory(child_directory_name: str) -> bool:
     """
     if child_directory_name == COMPLETED_DIR_NAME:
         return True
-    if child_directory_name.startswith(DELETE_DIR_PREFIX):
+    if DELETE_DIR_PREFIX.lower() in child_directory_name.lower():
         return True
     if child_directory_name.startswith(ERROR_HTM_PREFIX):
         return True
