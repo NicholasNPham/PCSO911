@@ -8,7 +8,6 @@ import string
 
 # Local Imports
 from ftp_outlook_error import send_error_email
-from key import TEMP_DIR
 
 # CONSTANTS"
 FTP_TYPE_FILE = "file"
@@ -139,37 +138,39 @@ def move_to_completed(ftp: FTP, dir_name: str, completed_folder: str) -> None:
         print(f"Failed to move '{dir_name}' : {MOVE_ERROR}")
         send_error_email(f"Failed to move '{dir_name}' : {MOVE_ERROR}")
 
-def download_files_to_temp(ftp: FTP, file_list: list) -> tuple:
+def download_files_to_temp(ftp: FTP, file_list: list, temp_dir: str) -> list[str]:
     """
-        Downloads a list of files to a temp folder.
+    Downloads a list of files into a case's temp folder.
 
     Args:
         ftp: FTP connection object
         file_list: list of filenames to download
+        temp_dir (str): The case's own temp folder, already created.
     Returns:
-        tuple:
-            - TEMP_DIR: path to the temp directory
-            - local_file_path: list of local file paths
+        list[str]: Local paths of the downloaded files.
     """
-    os.makedirs(TEMP_DIR, exist_ok=True)
     local_file_path = []
 
     try:
         for filename in file_list:
-            local_path = os.path.join(TEMP_DIR, filename)
+            local_path = os.path.join(temp_dir, filename)
             with open(local_path, "wb") as file:
                 ftp.retrbinary(f"{FTP_RETR_COMMAND} {filename}", file.write)
             local_file_path.append(local_path)
             print(f"Downloaded {filename} to {local_path}")
     except (ftplib.all_errors, OSError) as DOWNLOAD_ERROR:
-        send_error_email(f"Failed to download files to Network Drive: {DOWNLOAD_ERROR}")
+        # main.py emails the failed case, so no email here as well.
+        print(f"Failed to download files to the temp folder: {DOWNLOAD_ERROR}")
         raise
 
-    return TEMP_DIR, local_file_path
+    return local_file_path
 
 def delete_temp_dir(temp_dir: str) -> None:
     """
-    Deletes the temporary directory and all of its contents.
+    Deletes a case's temp folder and everything in it. Never raises.
+
+    Runs in a finally, where an error would replace the case's real one.
+    A leftover folder is only disk space under %TEMP%, which Windows cleans.
 
     Args:
         temp_dir (str): Absolute path to the temporary directory to delete.
@@ -177,9 +178,11 @@ def delete_temp_dir(temp_dir: str) -> None:
     Returns:
         None
     """
-    if os.path.exists(temp_dir):
+    try:
         shutil.rmtree(temp_dir)
         print(f"Deleted temp directory: {temp_dir}")
+    except OSError as error:
+        print(f"Warning: could not delete temp directory {temp_dir}: {error}")
 
 def collect_directory_contents(ftp: FTP, dir_name: str) -> dict:
     """
@@ -220,15 +223,14 @@ def collect_directory_contents(ftp: FTP, dir_name: str) -> dict:
             else:
                 print(f"Unexpected file extension skipped: '{filename}' in '{dir_name}'")
 
+    # main.py emails the setup failure these raise into, so no email here as well.
     except (ftplib.all_errors, OSError) as CHANGE_DIR_IN_ERROR:
-        send_error_email(f"Failed to cwd into {dir_name}: {CHANGE_DIR_IN_ERROR}")
         print(f"Failed to cwd into {dir_name}: {CHANGE_DIR_IN_ERROR}")
         raise
 
     try:
         ftp.cwd(RETURN_TO_PARENT_DIRECTORY)
     except (ftplib.all_errors, OSError)as CHANGE_DIR_OUT_ERROR:
-        send_error_email(f"Failed to cwd out of {dir_name}: {CHANGE_DIR_OUT_ERROR}")
         print(f"Failed to cwd out {dir_name}: {CHANGE_DIR_OUT_ERROR}")
         raise
 

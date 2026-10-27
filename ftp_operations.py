@@ -1,10 +1,12 @@
 # Standard Library Imports
 import re
+import tempfile
 from ftplib import FTP
 
 # Local Imports
+from exceptions import CaseProblem
 from ftp_outlook_error import send_error_email
-from ftp_to_stac import run_stac_script
+from ftp_to_stac import StacSession, SaveMayHaveHappened
 from ftp_conn import collect_directory_contents, delete_temp_dir, rename_directory, move_to_completed, download_files_to_temp, random_six_digit_suffix
 from key import UNIVERSAL_CASE_NUMBER_PATTERN
 
@@ -12,7 +14,12 @@ from key import UNIVERSAL_CASE_NUMBER_PATTERN
 RETURN_TO_PARENT_DIRECTORY = '..'
 COMPLETED_DIR_NAME = "__Completed"
 ERROR_HTM_PREFIX = '_ERROR_HTM '
+# Save was pressed but STAC never confirmed, so the audio may already be on
+# the case. Skipped by every later run until a person checks and renames it.
+ERROR_SAVE_PREFIX = '_ERROR_SAVE '
 DELETE_DIR_PREFIX = '_DELETE'
+# Names each case's temp folder, so a leftover under %TEMP% is easy to spot.
+TEMP_DIR_PREFIX = 'pcso911_'
 SCRIPT_RAN_SUFFIX = ' _SCRIPT '
 HAS_HTM_KEY = "has_htm"
 
@@ -82,6 +89,8 @@ def should_skip_directory(child_directory_name: str) -> bool:
         return True
     if child_directory_name.startswith(ERROR_HTM_PREFIX):
         return True
+    if child_directory_name.startswith(ERROR_SAVE_PREFIX):
+        return True
     return False
 
 def list_processable_directories(ftp: FTP) -> list:
@@ -149,67 +158,114 @@ def build_directory_manifest(ftp: FTP) -> dict:
 
     return manifest
 
-def process_single_case(ftp: FTP, child_dir_name: str, child_dir_data: dict) -> tuple:
+def process_single_case(ftp: FTP, stac: StacSession, child_dir_name: str, child_dir_data: dict) -> None:
     """
-    Downloads files for a single case, reformats the UCN, and runs the STAC upload script.
+    Downloads files for a single case, reformats the UCN, and uploads them through the STAC session.
+
+    The temp directory is deleted whether or not the upload worked, so a
+    failed case cannot leave its files behind for the next one.
 
     Args:
         ftp (FTP): Active FTP connection object.
+        stac (StacSession): The run's signed-in STAC session.
         child_dir_name (str): Name of the child directory on the FTP server.
         child_dir_data (dict): Manifest entry containing 'ucn', 'files', and 'has_htm' keys.
 
     Returns:
-        tuple: (is_match (bool), temp_dir (str)) — whether STAC found a match and the
-               path to the local temp directory containing downloaded files.
+        None
+
+    Raises:
+        CaseProblem: This case needs a person (not found, name mismatch, or
+                     Save unconfirmed). The directory is left on FTP, renamed
+                     with ERROR_SAVE_PREFIX in the unconfirmed Save case.
+        SystemProblem: STAC is broken and the retry is used up.
     """
-    ftp.cwd(child_dir_name)
-    temp_dir, local_file_paths = download_files_to_temp(ftp, child_dir_data["files"])
-    ftp.cwd(RETURN_TO_PARENT_DIRECTORY)
+    # A fresh folder per case under %TEMP%, which is on the local C: drive for
+    # the account running this. Nothing is shared with the last case, or with
+    # another program on the same machine, and deleting it touches nothing else.
+    temp_dir = tempfile.mkdtemp(prefix=TEMP_DIR_PREFIX)
+    try:
+        ftp.cwd(child_dir_name)
+        try:
+            local_file_paths = download_files_to_temp(ftp, child_dir_data["files"], temp_dir)
+        finally:
+            # Back to the parent even when the download fails, or every later
+            # case would cwd from inside this one.
+            ftp.cwd(RETURN_TO_PARENT_DIRECTORY)
 
-    ucn = child_dir_data["ucn"]
-    reformatted = reformat_unknown_ucn(ucn)
-    print(f"Original UCN: {ucn}")
-    print(f"Reformatted UCN: {reformatted}")
+        ucn = child_dir_data["ucn"]
+        reformatted = reformat_unknown_ucn(ucn)
+        print(f"Original UCN: {ucn}")
+        print(f"Reformatted UCN: {reformatted}")
 
-    is_match = run_stac_script(reformatted, local_file_paths, child_dir_name)
+        try:
+            stac.upload_case(reformatted, local_file_paths, child_dir_name)
+        except SaveMayHaveHappened as error:
+            mark_save_unconfirmed(ftp, child_dir_name, error)
+    finally:
+        delete_temp_dir(temp_dir)
 
-    return is_match, temp_dir
-
-def handle_match_results(ftp: FTP, is_match: bool, temp_dir: str, child_dir_data: dict, child_dir_name: str, case_count_run: int) -> int:
+def mark_save_unconfirmed(ftp: FTP, child_dir_name: str, error: SaveMayHaveHappened) -> None:
     """
-    Handles post-STAC cleanup and FTP directory management based on match result.
-
-    If matched: deletes temp files, renames and moves the directory to Completed,
-    or flags it with an HTM error prefix if an HTM file was detected.
-    If not matched: deletes temp files and sends a no-match error notification.
+    Renames a directory whose Save went unconfirmed so no later run uploads it again.
 
     Args:
         ftp (FTP): Active FTP connection object.
-        is_match (bool): Whether STAC found a matching case.
-        temp_dir (str): Path to the local temp directory to delete.
+        child_dir_name (str): Name of the child directory on the FTP server.
+        error (SaveMayHaveHappened): The unconfirmed Save, re-raised with the outcome added.
+
+    Returns:
+        None
+
+    Raises:
+        SaveMayHaveHappened: Always, saying whether the rename worked.
+    """
+    try:
+        renamed = rename_directory(ftp, child_dir_name, ERROR_SAVE_PREFIX, SCRIPT_RAN_SUFFIX, random_six_digit_suffix())
+    except Exception as rename_error:
+        raise SaveMayHaveHappened(
+            f"{error} Renaming the directory also failed ({rename_error}), so the next "
+            "run WILL upload it again unless it is moved by hand first."
+        ) from error
+    raise SaveMayHaveHappened(f"{error} Directory renamed to '{renamed}' so it is not run again.") from error
+
+def handle_uploaded_case(ftp: FTP, child_dir_data: dict, child_dir_name: str, case_count_run: int) -> int:
+    """
+    Manages the FTP directory after its files were saved in STAC.
+
+    Renames and moves the directory to Completed, or flags it with an HTM
+    error prefix if an HTM file was detected.
+
+    Args:
+        ftp (FTP): Active FTP connection object.
         child_dir_data (dict): Manifest entry containing 'has_htm' key.
         child_dir_name (str): Name of the child directory on the FTP server.
         case_count_run (int): Running count of successfully completed cases.
 
     Returns:
         int: Updated case count.
+
+    Raises:
+        CaseProblem: If the rename fails. The audio is already in STAC, so the
+                     directory still under its old name would be uploaded
+                     again by the next run.
     """
-    if is_match:
-        delete_temp_dir(temp_dir)
-        if child_dir_data[HAS_HTM_KEY]:
-            renamed = rename_directory(ftp, child_dir_name, ERROR_HTM_PREFIX, SCRIPT_RAN_SUFFIX, random_six_digit_suffix())
-            htm_file_error = f"HTM file detected — renamed to '{renamed}', skipping move to Completed."
-            print(htm_file_error)
-            send_error_email(htm_file_error)
-        else:
-            renamed = rename_directory(ftp, child_dir_name, DELETE_DIR_PREFIX, SCRIPT_RAN_SUFFIX, random_six_digit_suffix())
-            move_to_completed(ftp, renamed, COMPLETED_DIR_NAME)
-            case_count_run += 1
-            print(f"Case count: {case_count_run}")
+    prefix = ERROR_HTM_PREFIX if child_dir_data[HAS_HTM_KEY] else DELETE_DIR_PREFIX
+    try:
+        renamed = rename_directory(ftp, child_dir_name, prefix, SCRIPT_RAN_SUFFIX, random_six_digit_suffix())
+    except Exception as rename_error:  # rename_directory raises a bare Exception, and ftplib its own
+        raise CaseProblem(
+            f"The audio IS saved in STAC, but renaming the directory failed ({rename_error}). "
+            "The next run WILL upload it again unless it is moved or renamed by hand first."
+        ) from rename_error
+
+    if child_dir_data[HAS_HTM_KEY]:
+        htm_file_error = f"HTM file detected, renamed to '{renamed}', skipping move to Completed."
+        print(htm_file_error)
+        send_error_email(htm_file_error)
     else:
-        delete_temp_dir(temp_dir)
-        no_matching_stac_ucn_error = f"No match found for '{child_dir_name}'. Directory left on FTP."
-        print(no_matching_stac_ucn_error)
-        send_error_email(no_matching_stac_ucn_error)
+        move_to_completed(ftp, renamed, COMPLETED_DIR_NAME)
+        case_count_run += 1
+        print(f"Case count: {case_count_run}")
 
     return case_count_run

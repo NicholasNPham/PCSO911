@@ -9,3 +9,5 @@ log_*.txt
 .env
 .ai
 .idea/
+.claude
+CLAUDE.md
