@@ -18,6 +18,9 @@ SCHEDULE_HOUR = 15 # 3:00 PM
 SCHEDULE_MINUTE = 0
 SCHEDULE_DAYS = {0, 1, 2, 3, 4} # MONDAY-FRIDAY
 SLEEP_INTERVAL_SECONDS = 60
+# Kept next to main.py so a restart of the loop knows today's run already
+# happened. Holds only a date.
+LAST_RUN_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "last_run_date.txt")
 
 # CLASS
 class Tee:
@@ -72,6 +75,72 @@ def is_scheduled_run_time() -> bool:
         and now.hour == SCHEDULE_HOUR
         and now.minute == SCHEDULE_MINUTE
     )
+
+def read_last_run_date() -> datetime.date | None:
+    """
+    Reads the date of the last scheduled run from LAST_RUN_FILE.
+
+    Returns:
+        datetime.date | None: The recorded date, or None if no run has been
+                              recorded yet.
+
+    Raises:
+        SystemProblem: If the file exists but does not hold a valid date, so
+                       the loop refuses to start rather than guess and maybe
+                       run twice in one day.
+    """
+    if not os.path.exists(LAST_RUN_FILE):
+        return None
+    with open(LAST_RUN_FILE) as last_run_file:
+        content = last_run_file.read().strip()
+    try:
+        return datetime.date.fromisoformat(content)
+    except ValueError:
+        raise SystemProblem(
+            f"{LAST_RUN_FILE} does not hold a date like 2026-01-31. "
+            f"Fix or delete it, then start again."
+        )
+
+def record_run_date(run_date: datetime.date) -> None:
+    """
+    Writes the date of a scheduled run to LAST_RUN_FILE.
+
+    Args:
+        run_date (datetime.date): The date to record.
+
+    Returns:
+        None
+    """
+    try:
+        with open(LAST_RUN_FILE, "w") as last_run_file:
+            last_run_file.write(run_date.isoformat())
+    except OSError as e:
+        # The loop still remembers the date in memory, so only a restart
+        # today could run twice. Not worth skipping the run over.
+        print(f"Warning: could not record today's run in {LAST_RUN_FILE}: {e}", flush=True)
+
+def next_scheduled_run(last_ran_date: datetime.date | None) -> datetime.datetime:
+    """
+    Works out when the scheduled loop will next start a run.
+
+    Args:
+        last_ran_date (datetime.date | None): The date the loop last ran, or
+                                              None if it has not run yet.
+
+    Returns:
+        datetime.datetime: The next scheduled weekday at the scheduled time.
+    """
+    now = datetime.datetime.now()
+    candidate = now.replace(hour=SCHEDULE_HOUR, minute=SCHEDULE_MINUTE, second=0, microsecond=0)
+    # The run window is the whole scheduled minute, so today still counts
+    # until that minute has fully passed.
+    while (
+        candidate.weekday() not in SCHEDULE_DAYS
+        or candidate.date() == last_ran_date
+        or candidate + datetime.timedelta(minutes=1) <= now
+    ):
+        candidate += datetime.timedelta(days=1)
+    return candidate
 
 # MAIN LOOP SETUP
 def run_pcso911_script(credentials: dict[str, str]) -> None:
@@ -176,13 +245,38 @@ if __name__ == "__main__":
     option = input("enter option: ")
 
     if option == "1":
-        script_last_ran_date = None
+        try:
+            script_last_ran_date = read_last_run_date()
+        except SystemProblem as last_run_error:
+            print(last_run_error)
+            sys.exit(1)
+
+        if script_last_ran_date == datetime.date.today():
+            print("Already ran today. Not running again until the next scheduled day.", flush=True)
+        elif script_last_ran_date is not None:
+            print(f"Last scheduled run: {script_last_ran_date:%A %Y-%m-%d}", flush=True)
+        else:
+            print("No scheduled run recorded yet.", flush=True)
+
         while True:
             if is_scheduled_run_time() and script_last_ran_date != datetime.date.today():
-                run_pcso911_script(loaded_credentials)
+                print(f"Starting scheduled run at {datetime.datetime.now():%Y-%m-%d %I:%M %p}", flush=True)
+                # Recorded before the run, so a restart after a hang or crash
+                # today does not start a second run.
                 script_last_ran_date = datetime.date.today()
+                record_run_date(script_last_ran_date)
+                run_pcso911_script(loaded_credentials)
+                print(
+                    f"Run finished at {datetime.datetime.now():%Y-%m-%d %I:%M %p}. "
+                    f"Still running. Next run: {next_scheduled_run(script_last_ran_date):%A %Y-%m-%d at %I:%M %p}",
+                    flush=True,
+                )
             else:
-                print(datetime.datetime.now().strftime("%H:%M"))
+                print(
+                    f"{datetime.datetime.now():%H:%M} waiting for the "
+                    f"{next_scheduled_run(script_last_ran_date):%I:%M %p run on %A %Y-%m-%d}",
+                    flush=True,
+                )
                 time.sleep(SLEEP_INTERVAL_SECONDS)
     elif option == "2":
         run_pcso911_script(loaded_credentials)
